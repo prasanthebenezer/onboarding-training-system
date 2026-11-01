@@ -8,12 +8,15 @@ place speech at a timestamp. So:
             combined file, for pasting into the voice tool.
 2. (you)    generate ONE audio clip per scene in the voice tool and name them
             scene01.mp3, scene02.mp3, ... (any audio format, in scene order).
+   OR, in VoiceStudio's Dub workspace: `srt` writes a timed subtitle file;
+   load the silent Motion MP4, click Import .srt, generate, export.
 3. assemble places each clip at its scene's start time from script.<lang>.md,
             checks each clip fits before the next scene starts, and writes a
             full-length audio track, or the finished MP4 if you pass --video.
 
 Usage:
   python3 scripts/voiceover.py export   content/modules/pt-01-raw-materials --lang en
+  python3 scripts/voiceover.py srt      content/modules/pt-01-raw-materials --lang en
   python3 scripts/voiceover.py assemble content/modules/pt-01-raw-materials --lang en \
           --clips ~/voice/pt01-en --video visuals_en.mp4 --out en.mp4
 
@@ -65,6 +68,37 @@ def export(module: Path, lang: str):
     for s in scenes:
         words = len(s["text"].split())
         print(f"  scene{s['no']:02d}  {fmt(s['start'])}-{fmt(s['end'])}  slot {s['end'] - s['start']:>3}s  {words:>3} words  {s['name']}")
+
+
+SENTENCE_RE = re.compile(r"(?<=[.!?\u0964\u061F])\s+")  # . ! ? plus Hindi danda and Arabic question mark
+GAP = 0.25  # seconds of silence between cues
+
+
+def srt_time(sec: float) -> str:
+    ms = round(sec * 1000)
+    return f"{ms // 3600000:02d}:{ms // 60000 % 60:02d}:{ms // 1000 % 60:02d},{ms % 1000:03d}"
+
+
+def srt(module: Path, lang: str):
+    """One cue per sentence. Each scene's sentences share the scene's time slot in
+    proportion to their length, so speech starts on the scene and ends before the next."""
+    scenes, length = parse_script(module / f"script.{lang}.md")
+    cues = []
+    for s in scenes:
+        sents = [x.strip() for x in SENTENCE_RE.split(s["text"]) if x.strip()]
+        weights = [max(len(x), 1) for x in sents]
+        usable = (s["end"] - s["start"]) - MARGIN
+        t = float(s["start"])
+        for text, w in zip(sents, weights):
+            dur = usable * w / sum(weights)
+            cues.append((t, t + dur - GAP, text))
+            t += dur
+    out = module / "voiceover" / lang / f"narration.{lang}.srt"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("".join(f"{i}\n{srt_time(a)} --> {srt_time(b)}\n{text}\n\n"
+                           for i, (a, b, text) in enumerate(cues, 1)), encoding="utf-8")
+    longest = max(b - a for a, b, _ in cues)
+    print(f"Wrote {out}: {len(cues)} cues over {fmt(length)}, longest cue {longest:.1f}s")
 
 
 def fmt(sec: float) -> str:
@@ -130,6 +164,9 @@ def main():
     e = sub.add_parser("export", help="write narration-only text per scene")
     e.add_argument("module", type=Path)
     e.add_argument("--lang", default="en")
+    r = sub.add_parser("srt", help="write a timed .srt for VoiceStudio's Dub > Import .srt")
+    r.add_argument("module", type=Path)
+    r.add_argument("--lang", default="en")
     a = sub.add_parser("assemble", help="place per-scene clips at their scene times")
     a.add_argument("module", type=Path)
     a.add_argument("--lang", default="en")
@@ -140,6 +177,8 @@ def main():
     args = ap.parse_args()
     if args.cmd == "export":
         export(args.module, args.lang)
+    elif args.cmd == "srt":
+        srt(args.module, args.lang)
     else:
         assemble(args.module, args.lang, args.clips, args.out, args.video, args.force)
 

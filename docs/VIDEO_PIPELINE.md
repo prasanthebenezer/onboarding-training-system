@@ -12,6 +12,14 @@ Limit: **under 3 minutes per video**. Keep narration at or below about 330 Engli
    ```
    This writes `content/modules/<slug>/voiceover/en/scene01.txt ...` (narration only, no cues) and prints each scene's time slot.
    Paste each file into Voice Studio separately and save the clips as `scene01.mp3`, `scene02.mp3`, ... in one folder.
+   **Easier with VoiceStudio (github.com/debpalash/VoiceStudio): one pass, no separate clips.**
+   ```bash
+   python3 scripts/voiceover.py srt content/modules/<slug> --lang en
+   ```
+   This writes `content/modules/<slug>/voiceover/en/narration.en.srt`: one subtitle per sentence, timed inside its scene.
+   In VoiceStudio open **Dub**, load the silent MP4 exported from Motion, click **Import .srt**, pick a voice,
+   set **Timing: Concise** (natural speed, each line starts on its cue), skip Translate, **Generate**, then export MP4.
+   Do NOT use Strict slot (stretches speech to fill each cue) or Stretch Video (changes the video length).
 4. **Visuals (Claude Motion artifact):** one Motion video per language, built from the ON SCREEN lines, with scene lengths matched to that language's voiceover.
    Arabic on-screen text is laid out right to left. Export MP4 from Motion.
 5. **Place the clips on the timeline and add them to the video:**
