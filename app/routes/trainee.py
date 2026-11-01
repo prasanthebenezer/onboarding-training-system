@@ -72,7 +72,42 @@ def landing(token: str, request: Request, db: Session = Depends(get_db)):
                                           {"title": "Link expired", "msg": "Ask your supervisor for a new link."})
     if not _verified(request, a):
         return templates.TemplateResponse(request, "trainee/verify.html", {"a": a, "error": None})
-    return templates.TemplateResponse(request, "trainee/modules.html", {"a": a, "languages": LANGUAGES})
+    if request.session.get("lang") not in LANGUAGES:
+        return _language_page(request, a)
+    return templates.TemplateResponse(request, "trainee/modules.html", {
+        "a": a, "languages": LANGUAGES, "lang": request.session["lang"]})
+
+
+def _language_page(request: Request, a: Assignment):
+    current = request.session.get("lang") or a.trainee.preferred_lang
+    return templates.TemplateResponse(request, "trainee/language.html", {
+        "a": a, "languages": LANGUAGES, "current": current})
+
+
+@router.get("/{token}/language")
+def language_form(token: str, request: Request, db: Session = Depends(get_db)):
+    a = _assignment(db, token)
+    if not _verified(request, a):
+        return RedirectResponse(f"/t/{token}", status_code=303)
+    return _language_page(request, a)
+
+
+@router.post("/{token}/language")
+def choose_language(token: str, request: Request, lang: str = Form(...), db: Session = Depends(get_db)):
+    """The trainee picks their own language; it is remembered for their next visit."""
+    a = _assignment(db, token)
+    if not _verified(request, a):
+        return RedirectResponse(f"/t/{token}", status_code=303)
+    if lang not in LANGUAGES:
+        raise HTTPException(400, "Unknown language")
+    request.session["lang"] = lang
+    trainee = a.trainee
+    if trainee.preferred_lang != lang:
+        audit.log(db, trainee.employee_id, "language_chosen", "trainee", trainee.id,
+                  {"from": trainee.preferred_lang, "to": lang})
+        trainee.preferred_lang = lang
+        db.commit()
+    return RedirectResponse(f"/t/{token}", status_code=303)
 
 
 @router.post("/{token}")
@@ -100,14 +135,15 @@ def verify(token: str, request: Request, employee_id: str = Form(...), db: Sessi
 def watch(token: str, item_id: int, request: Request, lang: str | None = None, db: Session = Depends(get_db)):
     item = _item(db, request, token, item_id)
     vids = _videos(item)
-    trainee = item.assignment.trainee
+    chosen = request.session.get("lang") or item.assignment.trainee.preferred_lang
     if lang not in vids:
-        lang = trainee.preferred_lang if trainee.preferred_lang in vids else next(iter(vids), None)
+        lang = next((c for c in (chosen, "en") if c in vids), next(iter(vids), None))
     if lang:
         db.add(ViewEvent(item_id=item.id, lang=lang, event="open"))
         db.commit()
     return templates.TemplateResponse(request, "trainee/watch.html", {
-        "token": token, "item": item, "lang": lang, "videos": vids, "languages": LANGUAGES})
+        "token": token, "item": item, "lang": lang, "videos": vids, "languages": LANGUAGES,
+        "chosen": chosen, "missing_chosen": bool(vids) and chosen not in vids})
 
 
 class EventIn(BaseModel):

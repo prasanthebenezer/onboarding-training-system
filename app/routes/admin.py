@@ -45,13 +45,13 @@ def trainees(request: Request, user: AdminUser = Depends(require_admin), db: Ses
         "user": user, "trainees": rows, "languages": LANGUAGES, "msg": request.query_params.get("msg")})
 
 
-def _upsert_trainee(db: Session, actor: str, employee_id: str, name: str, phone: str, role: str, lang: str) -> str:
+def _upsert_trainee(db: Session, actor: str, employee_id: str, name: str, phone: str, role: str) -> str:
+    # Language is not set here: each trainee picks it on their own link (trainee.py: choose_language).
     employee_id, name = employee_id.strip(), name.strip()
     if not employee_id or not name or not normalize_phone(phone):
         return f"skipped incomplete row ({employee_id or name or '?'})"
-    lang = lang if lang in LANGUAGES else "en"
     t = db.scalar(select(Trainee).where(Trainee.employee_id == employee_id))
-    data = {"name": name, "phone": normalize_phone(phone), "role": role.strip() or "Technician", "preferred_lang": lang}
+    data = {"name": name, "phone": normalize_phone(phone), "role": role.strip() or "Technician"}
     if t:
         for k, v in data.items():
             setattr(t, k, v)
@@ -66,9 +66,9 @@ def _upsert_trainee(db: Session, actor: str, employee_id: str, name: str, phone:
 
 @router.post("/trainees")
 def add_trainee(employee_id: str = Form(...), name: str = Form(...), phone: str = Form(...),
-                role: str = Form("Technician"), preferred_lang: str = Form("en"),
+                role: str = Form("Technician"),
                 user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
-    msg = _upsert_trainee(db, user.username, employee_id, name, phone, role, preferred_lang)
+    msg = _upsert_trainee(db, user.username, employee_id, name, phone, role)
     db.commit()
     return _go(f"/admin/trainees?msg={msg}")
 
@@ -78,7 +78,7 @@ async def import_trainees(file: UploadFile = File(...), user: AdminUser = Depend
                           db: Session = Depends(get_db)):
     text = (await file.read()).decode("utf-8-sig")
     results = [_upsert_trainee(db, user.username, r.get("employee_id", ""), r.get("name", ""),
-                               r.get("phone", ""), r.get("role", ""), r.get("preferred_lang", "en"))
+                               r.get("phone", ""), r.get("role", ""))
                for r in csv.DictReader(io.StringIO(text))]
     db.commit()
     return _go(f"/admin/trainees?msg=Import: {len(results)} rows ({sum('added' in r for r in results)} added, "

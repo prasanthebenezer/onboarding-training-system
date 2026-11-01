@@ -110,3 +110,42 @@ def test_frozen_version(client, tmp_path, monkeypatch):
     with SessionLocal() as db:
         rep = content_loader.sync(db, "t")
     assert any("version not bumped" in e for e in rep.errors)
+
+
+def test_trainee_chooses_language(client):
+    token, _ = _setup(client)  # module 1 has only an Arabic video uploaded
+    client.post(f"/t/{token}", data={"employee_id": "E100"})
+
+    page = client.get(f"/t/{token}").text  # first visit: language screen before the module list
+    assert "Choose your language" in page and "മലയാളം" in page
+    assert client.post(f"/t/{token}/language", data={"lang": "xx"}).status_code == 400
+
+    r = client.post(f"/t/{token}/language", data={"lang": "ml"})
+    assert "My training" in r.text and "മലയാളം" in r.text
+    from app.db import SessionLocal
+    from app.models import AuditLog, Trainee
+    with SessionLocal() as db:
+        assert db.query(Trainee).filter_by(employee_id="E100").one().preferred_lang == "ml"
+        assert db.query(AuditLog).filter_by(action="language_chosen").count() == 1
+
+    # no Malayalam video yet: falls back and says so
+    w = client.get(f"/t/{token}/m/1").text
+    assert "not available in മലയാളം yet" in w and "/video/1/ar" in w
+
+    # chooses Arabic: plays Arabic, no notice; quiz link carries the language
+    client.post(f"/t/{token}/language", data={"lang": "ar"})
+    w = client.get(f"/t/{token}/m/1").text
+    assert "not available" not in w and "/video/1/ar" in w and "quiz?lang=ar" in w
+
+    # the choice is remembered on the next visit (new session)
+    client.cookies.clear()
+    client.post(f"/t/{token}", data={"employee_id": "E100"})
+    assert 'value="ar" class="btn "' in client.get(f"/t/{token}").text
+
+
+def test_admin_has_no_language_field(client):
+    page = client.get("/admin/trainees", auth=ADMIN).text
+    assert 'name="preferred_lang"' not in page
+    r = client.post("/admin/trainees/import", auth=ADMIN, files={"file": (
+        "t.csv", b"employee_id,name,phone,role,preferred_lang\nE7,Old Format,+966500000007,Technician,hi\n", "text/csv")})
+    assert "1 added" in r.text  # old CSVs with a language column still import; the column is ignored

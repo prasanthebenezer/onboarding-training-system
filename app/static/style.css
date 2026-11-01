@@ -19,3 +19,8 @@ video{width:100%;max-height:70vh;background:#000;border-radius:8px}
 .q input{margin-inline-end:8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .stat{font-size:1.8rem;font-weight:700}
+.langpick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.langpick .btn{padding:18px 12px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.langpick .native{font-size:1.35rem;font-weight:600}.langpick .en{font-size:.85rem;opacity:.8}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.notice{background:#fff3e0;border:1px solid #f0d2a8;padding:8px 12px;border-radius:8px;margin:10px 0}

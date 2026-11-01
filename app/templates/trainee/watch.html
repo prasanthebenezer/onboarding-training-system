@@ -1,9 +1,10 @@
 {% extends "base.html" %}{% block title %}{{ item.module_version.title }}{% endblock %}
 {% block content %}
-<a href="/t/{{ token }}">← My training</a>
+<div class="topline"><a href="/t/{{ token }}">← My training</a><a href="/t/{{ token }}/language">🌐 Change language</a></div>
 <h1>{{ item.module_version.title }}</h1>
 {% if not videos %}<div class="card">The video for this module is not available yet. Please check again later.</div>
 {% else %}
+{% if missing_chosen %}<p class="notice">This video is not available in {{ languages[chosen].native }} yet. Showing {{ languages[lang].native }}.</p>{% endif %}
 <div class="langs"><span class="muted">Language / اللغة / भाषा / ഭാഷ:</span><br>
 {% for code in videos %}<a class="btn secondary {{ 'active' if code == lang }}" href="?lang={{ code }}">{{ languages[code].native }}</a>{% endfor %}</div>
 <div class="card" style="margin-top:12px">

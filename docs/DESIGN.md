@@ -14,6 +14,7 @@ Caddy (HTTPS, Let's Encrypt) in front. All three run in Docker Compose on the VP
 |---|---|---|
 | WhatsApp | `wa.me` click-to-chat from the admin's personal WhatsApp | No Business API. Automating a personal account (whatsapp-web.js, Baileys) breaks WhatsApp's terms and risks a ban. |
 | Trainee identity | Unguessable per-person link (`token_urlsafe(24)`) + Employee ID check, 5 tries max | There's no OTP channel without the Business API. Recorded IP and user agent add supporting evidence. |
+| Video language | Chosen by the trainee after the Employee ID check (once per visit, remembered for the next), changeable on every page; falls back to English with a notice when a module has no video in that language yet. Each change is audit-logged. Admins don't set it. | Trainees know their own language best |
 | Watch requirement | None (80% rule dropped). Play/ended events are logged as evidence. The quiz unlocks once the video page is opened. | Your decision |
 | Quiz | Random N from bank, fixed per attempt (refresh does not re-roll), pass mark %, max attempts. Answers stored. | Assessment evidence |
 | Content control | YAML in git; a published version is **frozen**: changed content without a version bump is rejected | ISO document control; old records keep pointing at the version actually taken |

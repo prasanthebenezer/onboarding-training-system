@@ -1,6 +1,7 @@
 {% extends "base.html" %}{% block title %}My training{% endblock %}
 {% block content %}
-<h1>My training · {{ a.trainee.name }}</h1>
+<div class="topline"><h1>My training · {{ a.trainee.name }}</h1>
+<a class="btn secondary" href="/t/{{ a.token }}/language">🌐 {{ languages[lang].native }} · Change language</a></div>
 {% if a.due_date %}<p class="muted">Please complete by {{ a.due_date|dt("%d/%m/%Y") }}</p>{% endif %}
 {% for i in a.items %}<div class="card">
 <h2>{{ i.module_version.title }} <span class="badge {{ i.status }}">{{ {"pending":"Not started","watched":"Quiz pending","passed":"Completed","failed":"Contact supervisor"}[i.status] }}</span></h2>

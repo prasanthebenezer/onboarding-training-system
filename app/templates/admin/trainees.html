@@ -7,14 +7,13 @@
  <input name="name" placeholder="Full name (Latin script)" required>
  <input name="phone" placeholder="WhatsApp number e.g. +9665XXXXXXXX" required>
  <select name="role"><option>Technician</option><option>Engineer</option><option>Supervisor</option></select>
- <select name="preferred_lang">{% for code,l in languages.items() %}<option value="{{ code }}">{{ l.name }}</option>{% endfor %}</select>
  <button>Save</button>
 </form></div>
 <div class="card"><h2>Bulk import (CSV)</h2>
-<p class="muted">Columns: <code>employee_id,name,phone,role,preferred_lang</code> (language codes: en, ar, hi, ml). Existing employee IDs are updated.</p>
+<p class="muted">Columns: <code>employee_id,name,phone,role</code>. Existing employee IDs are updated. Trainees choose their own video language when they open their link.</p>
 <form method="post" action="/admin/trainees/import" enctype="multipart/form-data"><input type="file" name="file" accept=".csv" required> <button>Import</button></form></div>
 <div class="card table-wrap"><table>
-<tr><th>Employee ID</th><th>Name</th><th>Role</th><th>Phone</th><th>Language</th><th>Status</th><th></th></tr>
+<tr><th>Employee ID</th><th>Name</th><th>Role</th><th>Phone</th><th>Language <span class="muted">(chosen by trainee)</span></th><th>Status</th><th></th></tr>
 {% for t in trainees %}<tr><td>{{ t.employee_id }}</td><td>{{ t.name }}</td><td>{{ t.role }}</td><td>+{{ t.phone }}</td>
 <td>{{ languages[t.preferred_lang].name }}</td><td>{{ "Active" if t.active else "Inactive" }}</td>
 <td><form method="post" action="/admin/trainees/{{ t.id }}/toggle"><button class="btn secondary">{{ "Deactivate" if t.active else "Activate" }}</button></form></td></tr>
