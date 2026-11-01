@@ -1,38 +1,52 @@
-# Deploy on the Hostinger VPS (trial)
+# Deployment
 
-Prerequisites: Docker + Docker Compose plugin on the VPS. A DNS **A record** for `training.prasanthebenezer.com` pointing to the VPS IP. Ports 80/443 open.
+## Current setup: Hostinger VPS srv1441644, behind the portfolio nginx
+The portfolio nginx (Docker, repo `prasanthebenezer.github.io`) already owns ports 80/443, so this
+app's Caddy is switched off and nginx proxies `training.prasanthebenezer.com` to the app.
 
+| Item | Where |
+|---|---|
+| Repo on the VPS | `/root/onboarding-training-system` |
+| Override (Caddy off, joins `prasanthebenezergithubio_default` as `training`) | `docker-compose.override.yml` (untracked). Template: `deploy/docker-compose.override.vps.yml` |
+| TLS + proxy | `nginx.conf` in `prasanthebenezer.github.io` (certbot webroot cert, 500 MB upload limit). Reference copy: `deploy/nginx-training.conf` |
+| DNS | GoDaddy: A record `training` → VPS IPv4 |
+| Backups | nightly `vps-backup` at 02:30 UTC: `pg_dump` of the database, the media volume, `.env` and the override |
+
+### Update to a new version
 ```bash
-git clone https://github.com/prasanthebenezer/onboarding-training-system.git /opt/onboarding-training-system
-cd /opt/onboarding-training-system
-cp .env.example .env
-nano .env        # set SECRET_KEY (e.g. `openssl rand -hex 32`), POSTGRES_PASSWORD (also in DATABASE_URL), ADMIN_USERS
-docker compose up -d --build
-docker compose logs -f app
+cd /root/onboarding-training-system && git pull && docker compose up -d --build
 ```
-Caddy gets the HTTPS certificate automatically once DNS resolves.
 
-First use: `https://training.prasanthebenezer.com/admin` → Modules → **Import content from repository** → upload videos → Trainees → Assign.
-
-Update to a new version: `git pull && docker compose up -d --build`.
-
-## Backups (do not skip: these are audit records)
+### Rebuild from scratch (new VPS or disaster recovery)
 ```bash
-crontab -e
-15 2 * * * cd /opt/onboarding-training-system && ./scripts/backup.sh >> backup.log 2>&1
+git clone https://github.com/prasanthebenezer/onboarding-training-system.git /root/onboarding-training-system
+cd /root/onboarding-training-system
+cp deploy/docker-compose.override.vps.yml docker-compose.override.yml
+cp .env.example .env && nano .env    # or restore .env from the vps-backup
+docker compose up -d --build         # the portfolio nginx stack must already be running
 ```
-Copy `backups/` off the VPS regularly (e.g. `rclone` to cloud storage) and test a restore once.
+Then restore the database and media from the latest `vps-backup`, and make sure the portfolio
+`nginx.conf` holds the server blocks from `deploy/nginx-training.conf`.
 
-## Change an admin password
-Run on the VPS (prompts without echoing, updates `ADMIN_USERS` in `.env`, restarts the app):
+### Change an admin password
+Run on the VPS. It asks for the password without showing it, updates `ADMIN_USERS` in `.env` and restarts the app:
 ```bash
 ./scripts/set-admin-password.sh             # first admin in ADMIN_USERS
 ./scripts/set-admin-password.sh supervisor1 # change or add another login
 ```
+Passwords must be 10+ characters with no spaces and none of `: ; $ # \ ' " `` ` ``. Compose would alter
+`$` and ` #` inside `.env`, and `:`/`;` separate the entries.
 
-## Current VPS setup (behind the existing portfolio nginx)
-On srv1441644 the portfolio nginx already owns ports 80/443, so Caddy is not used:
-- Repo lives at `/root/onboarding-training-system`; the backup cron above points there.
-- An untracked `docker-compose.override.yml` disables the `caddy` service (`profiles: ["disabled"]`) and joins `app` to the `prasanthebenezergithubio_default` network with alias `training`.
-- TLS and proxying for `training.prasanthebenezer.com` are in `nginx.conf` of `prasanthebenezer.github.io` (certbot webroot cert, 500 MB upload limit).
-- The nightly `vps-backup` (02:30 UTC) also stores a `pg_dump` of the database, the media volume, `.env` and the override file.
+### Health check / uptime monitor
+`GET https://training.prasanthebenezer.com/healthz` returns `{"ok":true}`. Use GET: HEAD returns 405.
+
+## Alternative: standalone server (nothing else on ports 80/443)
+Without an override file, `docker compose up -d --build` also starts Caddy, which gets the HTTPS certificate
+itself once DNS points at the server. Then schedule `scripts/backup.sh` (database + media into `./backups`)
+and copy `backups/` off the server:
+```bash
+15 2 * * * cd /path/to/onboarding-training-system && ./scripts/backup.sh >> backup.log 2>&1
+```
+
+## First use
+`/admin` → Modules → **Import content from repository** → upload videos → Trainees → Assign.

@@ -1,0 +1,17 @@
+# VPS override (srv1441644): the portfolio nginx owns ports 80/443, so Caddy is
+# switched off and the app joins nginx's Docker network as host "training".
+# Install:  cp deploy/docker-compose.override.vps.yml docker-compose.override.yml
+# Reconstructed from docs/DEPLOY.md: diff it against the live file once and fix any difference.
+services:
+  caddy:
+    profiles: ["disabled"]
+  app:
+    networks:
+      default: {}
+      portfolio:
+        aliases: [training]
+
+networks:
+  portfolio:
+    external: true
+    name: prasanthebenezergithubio_default

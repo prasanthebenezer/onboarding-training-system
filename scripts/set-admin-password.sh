@@ -17,7 +17,11 @@ read -rsp "New password for '$user': " pw1; echo
 read -rsp "Repeat password: " pw2; echo
 [[ $pw1 == "$pw2" ]] || { echo "Passwords do not match." >&2; exit 1; }
 (( ${#pw1} >= 10 )) || { echo "Use at least 10 characters." >&2; exit 1; }
-[[ $pw1 != *[:\;]* ]] || { echo "The password cannot contain ':' or ';'." >&2; exit 1; }
+# ':' and ';' separate ADMIN_USERS entries. Docker Compose also rewrites .env values:
+# '$' starts a variable and ' #' starts a comment, so the app would get a different password.
+if [[ $pw1 =~ [[:space:]] || $pw1 == *[:\;\$#\\\'\"\`]* ]]; then
+  echo "The password cannot contain spaces or any of these: : ; \$ # \\ ' \" \`" >&2; exit 1
+fi
 
 NEWPW=$pw1 TARGET=$user CURRENT=$current python3 - <<'PY'
 import os

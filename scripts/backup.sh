@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Standalone installs only (the srv1441644 VPS uses vps-backup instead; see docs/DEPLOY.md).
 # Daily backup of training records + videos. Run from the repo dir via cron, e.g.:
 #   15 2 * * * cd /opt/onboarding-training-system && ./scripts/backup.sh >> backup.log 2>&1
 # Copy ./backups OFF the VPS (e.g. rclone to cloud storage). ISO evidence must survive a server loss.

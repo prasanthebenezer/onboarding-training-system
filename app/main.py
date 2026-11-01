@@ -12,7 +12,8 @@ from .routes import admin, trainee
 def create_app() -> FastAPI:
     Base.metadata.create_all(engine)
     settings.media_dir.mkdir(parents=True, exist_ok=True)
-    app = FastAPI(title="Onboarding & Training System", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Onboarding & Training System", docs_url=None, redoc_url=None,
+                  openapi_url=None)
     app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, session_cookie="trn_session",
                        max_age=60 * 60 * 12, same_site="lax",
                        https_only=settings.base_url.startswith("https"))
