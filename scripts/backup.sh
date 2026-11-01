@@ -6,6 +6,6 @@ set -euo pipefail
 STAMP=$(date +%Y%m%d-%H%M)
 mkdir -p backups
 docker compose exec -T db pg_dump -U training training | gzip > "backups/db-$STAMP.sql.gz"
-docker compose run --rm -T -v "$PWD/backups:/out" --entrypoint tar app czf "/out/media-$STAMP.tgz" -C /data media
+docker compose run --rm -T --user 0 -v "$PWD/backups:/out" --entrypoint tar app czf "/out/media-$STAMP.tgz" -C /data media
 find backups -type f -mtime +30 -delete
 echo "backup ok $STAMP"
