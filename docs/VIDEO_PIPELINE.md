@@ -18,3 +18,10 @@ Limit: **under 3 minutes per video**. Keep narration at or below about 330 Engli
 6. **Upload:** `/admin/modules` → module → language row → Upload.
 7. **Changing content later:** edit the files, bump `version` in `module.yaml`, then import, upload the new videos and re-assign.
    Records of the old version stay valid for that version.
+
+## Status
+| Module | Language | Motion film | Length | Voiceover | Uploaded |
+|---|---|---|---|---|---|
+| pt-01 Raw Material Composition | EN | https://claude.ai/artifact/6cXuwHA1cBXKuzAjCkueRX | 2:30 (scene starts match `script.en.md`) | pending | no |
+
+The Motion films are silent on purpose. The voiceover is the only audio track, added in step 5.
