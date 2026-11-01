@@ -1,0 +1,46 @@
+slug: pt-02-plant-configurations
+title: "Plant Technology 2: Pre-Grinding vs Post-Grinding"
+version: "1"
+source_doc: "SMP-MAINT-TRAIN-002 v1, section 3"
+summary: "The two feed mill configurations, their process sequence and advantages."
+pass_mark: 80
+questions_per_attempt: 5
+max_attempts: 3
+acknowledgment: |
+  I confirm that I have watched this training video and completed the assessment
+  myself. I have understood the content of this module of the Plant Technology
+  Training Manual (SMP-MAINT-TRAIN-002) and will apply it in my work. I will ask
+  my supervisor if anything is unclear.
+questions:
+  - id: pc1
+    text: {en: "In a PRE-grinding configuration, raw materials are ground..."}
+    options: {en: ["Before dosing and weighing", "After dosing and weighing", "After pelleting", "Only for bagged products"]}
+    answer: 0
+  - id: pc2
+    text: {en: "In a POST-grinding configuration, raw materials are ground..."}
+    options: {en: ["Before dosing and weighing", "After dosing and weighing", "After cooling", "At intake only"]}
+    answer: 1
+  - id: pc3
+    text: {en: "What is step 1 in BOTH configurations?"}
+    options: {en: ["Mixing", "Size reduction", "Intake and cleaning", "Dosing and weighing"]}
+    answer: 2
+  - id: pc4
+    text: {en: "Which is an advantage of PRE-grinding?"}
+    options: {en: ["Recipe-specific particle size", "Uniform particle size across all batches", "Grinding only the required quantity", "Grind specification can change per batch"]}
+    answer: 1
+  - id: pc5
+    text: {en: "Which is an advantage of POST-grinding?"}
+    options: {en: ["Simplified grinder operation with dedicated material streams", "Reduced contamination risk between raw materials", "Energy efficiency by grinding only required quantities", "Same grinding specification for every recipe"]}
+    answer: 2
+  - id: pc6
+    text: {en: "Which configuration lets you adjust the grind specification for each batch?"}
+    options: {en: ["Pre-grinding", "Post-grinding", "Both equally", "Neither"]}
+    answer: 1
+  - id: pc7
+    text: {en: "Which configuration reduces contamination risk between different raw materials?"}
+    options: {en: ["Pre-grinding", "Post-grinding", "Neither", "Only bulk loading"]}
+    answer: 0
+  - id: pc8
+    text: {en: "In both configurations, which step comes directly after mixing?"}
+    options: {en: ["Size reduction", "Pelleting and cooling", "Dosing and weighing", "Intake and cleaning"]}
+    answer: 1

@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block title %}Result{% endblock %}
+{% block content %}
+<div class="card"><h1>Score: {{ attempt.score_pct }}%</h1>
+<p>The pass mark is {{ item.module_version.pass_mark }}%.</p>
+{% if left > 0 %}<p>You have {{ left }} attempt(s) left. Watch the video again, then retry.</p>
+<a class="btn secondary" href="/t/{{ token }}/m/{{ item.id }}">Watch again</a>
+<a class="btn" href="/t/{{ token }}/m/{{ item.id }}/quiz?lang={{ attempt.lang }}">Retry quiz</a>
+{% else %}<p class="error">No attempts left. Your supervisor has been notified on the dashboard and will arrange re-training.</p>{% endif %}
+</div>{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block title %}My training{% endblock %}
+{% block content %}
+<h1>My training · {{ a.trainee.name }}</h1>
+{% if a.due_date %}<p class="muted">Please complete by {{ a.due_date|dt("%d/%m/%Y") }}</p>{% endif %}
+{% for i in a.items %}<div class="card">
+<h2>{{ i.module_version.title }} <span class="badge {{ i.status }}">{{ {"pending":"Not started","watched":"Quiz pending","passed":"Completed","failed":"Contact supervisor"}[i.status] }}</span></h2>
+<p class="muted">{{ i.module_version.summary }}</p>
+{% if i.status == "passed" %}<a class="btn secondary" href="/t/{{ a.token }}/m/{{ i.id }}/done">View certificate</a>
+{% elif i.status != "failed" %}<a class="btn" href="/t/{{ a.token }}/m/{{ i.id }}">Start ▶</a>{% endif %}
+</div>{% endfor %}
+{% endblock %}

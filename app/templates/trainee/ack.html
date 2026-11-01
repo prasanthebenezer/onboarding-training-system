@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block title %}Acknowledgment{% endblock %}
+{% block content %}
+<div class="card"><h1>✔ Quiz passed</h1>
+<h2>Training acknowledgment</h2>
+<p style="white-space:pre-line;border-left:4px solid var(--brand);padding-left:12px">{{ item.module_version.acknowledgment_text }}</p>
+<p class="muted">Module: {{ item.module_version.title }} · Version {{ item.module_version.version }} · {{ item.module_version.source_doc }}</p>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post">
+<label><input type="checkbox" name="agree" value="1" required> I confirm the statement above.</label><br><br>
+<input name="typed_name" placeholder="Type your full name to sign" required minlength="3" style="width:100%"><br><br>
+<button>Sign and submit</button></form>
+</div>{% endblock %}

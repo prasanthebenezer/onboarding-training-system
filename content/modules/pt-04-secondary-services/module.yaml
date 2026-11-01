@@ -1,0 +1,50 @@
+slug: pt-04-secondary-services
+title: "Plant Technology 4: Secondary Services and Safety"
+version: "1"
+source_doc: "SMP-MAINT-TRAIN-002 v1, section 5"
+summary: "Aspiration, compressed air, electrical and control, liquids, and steam, with the safety rules for each."
+pass_mark: 80
+questions_per_attempt: 5
+max_attempts: 3
+acknowledgment: |
+  I confirm that I have watched this training video and completed the assessment
+  myself. I have understood the content of this module of the Plant Technology
+  Training Manual (SMP-MAINT-TRAIN-002) and will apply it in my work. I will ask
+  my supervisor if anything is unclear.
+questions:
+  - id: ss1
+    text: {en: "Which is NOT one of the five secondary services?"}
+    options: {en: ["Aspiration systems", "Steam supply", "Pelleting", "Compressed air supply"]}
+    answer: 2
+  - id: ss2
+    text: {en: "Aspiration systems control dust to..."}
+    options: {en: ["Protect worker health, prevent dust explosions and maintain product quality", "Increase pellet length", "Heat liquids", "Weigh ingredients"]}
+    answer: 0
+  - id: ss3
+    text: {en: "During aspiration system maintenance you must..."}
+    options: {en: ["Bypass explosion vents to save time", "Follow LOTO procedures and never bypass explosion vents or safety devices", "Leave the fans running", "Ignore dust in ductwork"]}
+    answer: 1
+  - id: ss4
+    text: {en: "Why is dust accumulation in ductwork dangerous?"}
+    options: {en: ["It presents fire and explosion hazards", "It improves airflow", "It cools the motor", "It has no effect"]}
+    answer: 0
+  - id: ss5
+    text: {en: "Compressed air must be supplied..."}
+    options: {en: ["Hot and humid", "Clean and dry", "Mixed with steam", "Only at night"]}
+    answer: 1
+  - id: ss6
+    text: {en: "Before starting electrical work you must..."}
+    options: {en: ["Verify zero energy state after LOTO", "Only switch off the HMI", "Ask an operator to watch", "Wear gloves only"]}
+    answer: 0
+  - id: ss7
+    text: {en: "What does steam supply provide for?"}
+    options: {en: ["Conditioning, pelleting, extrusion and liquid heating", "Bag sealing only", "Dust collection", "Pneumatic actuators"]}
+    answer: 0
+  - id: ss8
+    text: {en: "Which rule applies to steam systems?"}
+    options: {en: ["Work on them while pressurized if quick", "Never work on pressurized steam systems", "Steam traps need no isolation", "Burns are not a risk"]}
+    answer: 1
+  - id: ss9
+    text: {en: "Liquid installations handle which ingredients?"}
+    options: {en: ["Molasses, fats, oils and other liquid additives", "Stones and string", "Pellet fines", "Compressed air"]}
+    answer: 0

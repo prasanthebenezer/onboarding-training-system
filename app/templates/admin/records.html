@@ -1,0 +1,16 @@
+{% extends "admin/_base.html" %}{% block title %}Records{% endblock %}
+{% block content %}
+<h1>Training records <a class="btn secondary" href="/admin/records.csv">Export CSV</a></h1>
+<div class="card table-wrap"><table>
+<tr><th>Certificate</th><th>Trainee</th><th>Module</th><th>Lang</th><th>Score</th><th>Acknowledged</th><th>Supervisor</th></tr>
+{% for a in acks %}<tr>
+<td><a href="/admin/records/{{ a.id }}/certificate.pdf" target="_blank">{{ a.certificate_no }}</a></td>
+<td>{{ a.item.assignment.trainee.name }}<br><span class="muted">{{ a.employee_id }}</span></td>
+<td>{{ a.item.module_version.title }} <span class="muted">v{{ a.item.module_version.version }}</span></td>
+<td>{{ a.attempt.lang }}</td><td>{{ a.attempt.score_pct }}% <span class="muted">(try {{ a.attempt.attempt_no }})</span></td>
+<td>{{ a.at|dt }}<br><span class="muted">signed “{{ a.typed_name }}”</span></td>
+<td>{% if a.supervisor_name %}{{ a.supervisor_name }}<br><span class="muted">{{ a.supervisor_at|dt }}</span>
+{% else %}<form method="post" action="/admin/records/{{ a.id }}/signoff"><button>Sign off as {{ user.display_name }}</button></form>{% endif %}</td>
+</tr>{% else %}<tr><td colspan="7" class="muted">No completed training yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block title %}Confirm your identity{% endblock %}
+{% block content %}
+<div class="card"><h1>Hello {{ a.trainee.name }}</h1>
+<p>Before you start, confirm this link belongs to you by entering your <b>Employee ID</b>.</p>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post"><input name="employee_id" placeholder="Employee ID" autocomplete="off" required autofocus> <button>Continue</button></form>
+</div>{% endblock %}

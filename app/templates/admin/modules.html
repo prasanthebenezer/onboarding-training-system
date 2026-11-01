@@ -1,0 +1,22 @@
+{% extends "admin/_base.html" %}{% block title %}Modules{% endblock %}
+{% block content %}
+<h1>Training modules</h1>{% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
+<div class="card">
+<p class="muted">Module content and quizzes live in <code>content/modules/*/module.yaml</code> in git. After editing (and bumping <code>version</code>), import them here.</p>
+<form method="post" action="/admin/modules/sync"><button>Import content from repository</button></form>
+{% if report %}<div style="margin-top:12px">
+{% for x in report.created %}<div class="msg">Published: {{ x }}</div>{% endfor %}
+{% for x in report.unchanged %}<div class="muted">Unchanged: {{ x }}</div>{% endfor %}
+{% for x in report.errors %}<div class="error">{{ x }}</div>{% endfor %}</div>{% endif %}
+</div>
+{% for m in modules %}{% set mv = current.get(m.id) %}
+<div class="card"><h2>{{ m.title }} <span class="muted">· {{ m.slug }}</span></h2>
+{% if mv %}<p>Current version <b>v{{ mv.version }}</b> · {{ mv.source_doc }} · {{ mv.questions|length }} questions in bank, {{ mv.questions_per_attempt }} per attempt, pass {{ mv.pass_mark }}%, max {{ mv.max_attempts }} attempts</p>
+{% set vids = {} %}{% for v in mv.videos %}{% set _ = vids.update({v.lang: v}) %}{% endfor %}
+<table><tr><th>Language</th><th>Video</th><th>Upload / replace (.mp4)</th></tr>
+{% for code,l in languages.items() %}<tr><td>{{ l.name }}</td>
+<td>{% if vids[code] %}✔ {{ vids[code].filename }}<br><span class="muted">{{ vids[code].uploaded_at|dt }} by {{ vids[code].uploaded_by }}</span>{% else %}<span class="muted">missing</span>{% endif %}</td>
+<td><form method="post" action="/admin/modules/{{ mv.id }}/video" enctype="multipart/form-data"><input type="hidden" name="lang" value="{{ code }}"><input type="file" name="file" accept="video/mp4" required> <button>Upload</button></form></td></tr>{% endfor %}
+</table>{% endif %}</div>
+{% else %}<div class="card muted">No modules imported yet.</div>{% endfor %}
+{% endblock %}

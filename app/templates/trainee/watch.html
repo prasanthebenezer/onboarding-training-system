@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block title %}{{ item.module_version.title }}{% endblock %}
+{% block content %}
+<a href="/t/{{ token }}">← My training</a>
+<h1>{{ item.module_version.title }}</h1>
+{% if not videos %}<div class="card">The video for this module is not available yet. Please check again later.</div>
+{% else %}
+<div class="langs"><span class="muted">Language / اللغة / भाषा / ഭാഷ:</span><br>
+{% for code in videos %}<a class="btn secondary {{ 'active' if code == lang }}" href="?lang={{ code }}">{{ languages[code].native }}</a>{% endfor %}</div>
+<div class="card" style="margin-top:12px">
+<video id="v" controls playsinline preload="metadata" src="/t/{{ token }}/video/{{ item.id }}/{{ lang }}"></video>
+</div>
+<div class="card"><p>When you have watched the video, take the short quiz.</p>
+<a class="btn" href="/t/{{ token }}/m/{{ item.id }}/quiz?lang={{ lang }}">Take the quiz →</a></div>
+<script>
+(function(){const v=document.getElementById('v');let played=false;
+function send(e){fetch('/t/{{ token }}/m/{{ item.id }}/event',{method:'POST',headers:{'Content-Type':'application/json'},
+ body:JSON.stringify({lang:'{{ lang }}',event:e,position:v.currentTime||0})}).catch(()=>{});}
+v.addEventListener('play',()=>{if(!played){played=true;send('play');}});
+v.addEventListener('ended',()=>send('ended'));})();
+</script>{% endif %}
+{% endblock %}

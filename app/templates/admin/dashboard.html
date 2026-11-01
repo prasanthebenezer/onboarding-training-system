@@ -1,0 +1,20 @@
+{% extends "admin/_base.html" %}{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="grid">
+ <div class="card"><div class="muted">Not started</div><div class="stat">{{ counts.pending }}</div></div>
+ <div class="card"><div class="muted">Watched, quiz pending</div><div class="stat">{{ counts.watched }}</div></div>
+ <div class="card"><div class="muted">Completed</div><div class="stat">{{ counts.passed }}</div></div>
+ <div class="card"><div class="muted">Failed (attempts used)</div><div class="stat">{{ counts.failed }}</div></div>
+ <div class="card"><div class="muted">Overdue</div><div class="stat" style="color:var(--bad)">{{ overdue|length }}</div></div>
+</div>
+<div class="card table-wrap"><h2>Assigned training</h2>
+<table><tr><th>Trainee</th><th>Module</th><th>Status</th><th>Due</th><th>Sent</th><th>Completed</th></tr>
+{% for i in items %}<tr>
+<td>{{ i.assignment.trainee.name }}<br><span class="muted">{{ i.assignment.trainee.employee_id }}</span></td>
+<td>{{ i.module_version.title }} <span class="muted">v{{ i.module_version.version }}</span></td>
+<td><span class="badge {{ i.status }}">{{ i.status }}</span></td>
+<td>{{ i.assignment.due_date|dt("%d/%m/%Y") }}</td><td>{{ i.assignment.sent_at|dt }}</td><td>{{ i.completed_at|dt }}</td>
+</tr>{% else %}<tr><td colspan="6" class="muted">Nothing assigned yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

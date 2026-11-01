@@ -1,0 +1,9 @@
+{% extends "admin/_base.html" %}{% block title %}Audit{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+<div class="card">{% if ok %}<p class="msg">Chain intact: {{ n }} entries verified.</p>
+{% else %}<p class="error">Chain broken at entry #{{ bad }} (after {{ n }} checked). Records may have been altered outside the application. Restore from backup and investigate.</p>{% endif %}</div>
+<div class="card table-wrap"><table><tr><th>#</th><th>Time (UTC)</th><th>Actor</th><th>Action</th><th>Entity</th><th>Details</th></tr>
+{% for e in recent %}<tr><td>{{ e.id }}</td><td>{{ e.at|dt("%d/%m/%Y %H:%M:%S") }}</td><td>{{ e.actor }}</td><td>{{ e.action }}</td><td>{{ e.entity }} {{ e.entity_id }}</td><td><code style="font-size:.75rem">{{ e.payload|tojson }}</code></td></tr>{% endfor %}
+</table></div>
+{% endblock %}

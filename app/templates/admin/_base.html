@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block nav %}<span class="org">{{ org_name }} · Training Admin</span>
+<a href="/admin">Dashboard</a><a href="/admin/trainees">Trainees</a><a href="/admin/modules">Modules</a>
+<a href="/admin/assign">Assign</a><a href="/admin/assignments">Links</a><a href="/admin/records">Records</a><a href="/admin/audit">Audit</a>
+<span style="float:right">{{ user.display_name }}</span>{% endblock %}

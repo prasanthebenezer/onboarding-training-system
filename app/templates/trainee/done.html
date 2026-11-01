@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}Completed{% endblock %}
+{% block content %}
+<div class="card"><h1>✔ Training completed</h1>
+<p>{{ item.module_version.title }} (v{{ item.module_version.version }})</p>
+<p>Certificate No: <b>{{ item.acknowledgment.certificate_no }}</b></p>
+<a class="btn" href="/t/{{ token }}/m/{{ item.id }}/certificate.pdf" target="_blank">Download certificate (PDF)</a>
+<a class="btn secondary" href="/t/{{ token }}">Back to my training</a></div>
+{% endblock %}

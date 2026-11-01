@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block title %}Quiz{% endblock %}
+{% block content %}
+<h1>{{ item.module_version.title }}: Quiz</h1>
+<p class="muted">Attempt {{ attempt.attempt_no }} of {{ item.module_version.max_attempts }} · pass mark {{ item.module_version.pass_mark }}%</p>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post" dir="{{ dir }}">
+{% for q in questions %}<div class="card q"><b>{{ loop.index }}. {{ q.text }}</b>
+{% for opt in q.options %}<label><input type="radio" name="q_{{ q.id }}" value="{{ loop.index0 }}" required>{{ opt }}</label>{% endfor %}
+</div>{% endfor %}
+<button>Submit answers</button>
+</form>
+{% endblock %}

@@ -1,0 +1,50 @@
+slug: pt-01-raw-materials
+title: "Plant Technology 1: Raw Material Composition"
+version: "1"
+source_doc: "SMP-MAINT-TRAIN-002 v1, sections 1-2"
+summary: "What feed raw materials are made of: water, dry matter, and what each component does."
+pass_mark: 80
+questions_per_attempt: 5
+max_attempts: 3
+acknowledgment: |
+  I confirm that I have watched this training video and completed the assessment
+  myself. I have understood the content of this module of the Plant Technology
+  Training Manual (SMP-MAINT-TRAIN-002) and will apply it in my work. I will ask
+  my supervisor if anything is unclear.
+questions:
+  - id: rm1
+    text: {en: "Fresh matter in feed raw materials is made up of which two parts?"}
+    options: {en: ["Water and dry matter", "Protein and fat", "Starch and fiber", "Minerals and vitamins"]}
+    answer: 0
+  - id: rm2
+    text: {en: "Which dry matter components are the main sources of energy?"}
+    options: {en: ["Proteins and minerals", "Carbohydrates and lipids", "Vitamins and enzymes", "Water and minerals"]}
+    answer: 1
+  - id: rm3
+    text: {en: "In what unit is the energy value of feed measured?"}
+    options: {en: ["Kilograms (kg)", "Grams (g)", "Megajoules (MJ)", "Milligrams (mg)"]}
+    answer: 2
+  - id: rm4
+    text: {en: "What is the primary function of proteins in animal feed?"}
+    options: {en: ["Solvent for transport", "Source of energy", "Building material", "Flavoring"]}
+    answer: 2
+  - id: rm5
+    text: {en: "Amino acids are the building blocks for what?"}
+    options: {en: ["Muscle, tissue and enzyme production", "Starch and sugar", "Bone minerals only", "Water transport"]}
+    answer: 0
+  - id: rm6
+    text: {en: "Which of these are ACTIVE SUBSTANCES, measured in milligrams?"}
+    options: {en: ["Vitamins, hormones, enzymes and flavoring", "Sugar, starch and crude fiber", "Fats and oils", "Calcium and phosphorus"]}
+    answer: 0
+  - id: rm7
+    text: {en: "Which is a MINOR (trace) mineral element?"}
+    options: {en: ["Calcium", "Phosphorus", "Zinc", "Starch"]}
+    answer: 2
+  - id: rm8
+    text: {en: "What is the role of water in raw materials?"}
+    options: {en: ["Main energy source", "Solvent for transport", "Building material", "Active substance"]}
+    answer: 1
+  - id: rm9
+    text: {en: "Crude fiber belongs to which group?"}
+    options: {en: ["Carbohydrates", "Proteins", "Minerals", "Active substances"]}
+    answer: 0

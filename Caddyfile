@@ -1,0 +1,5 @@
+training.prasanthebenezer.com {
+	encode gzip
+	request_body max_size 500MB
+	reverse_proxy app:8000
+}

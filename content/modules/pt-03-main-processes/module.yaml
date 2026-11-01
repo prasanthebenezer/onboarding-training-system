@@ -1,0 +1,54 @@
+slug: pt-03-main-processes
+title: "Plant Technology 3: The Six Main Processes"
+version: "1"
+source_doc: "SMP-MAINT-TRAIN-002 v1, section 4"
+summary: "Intake and cleaning, dosing and weighing, grinding, mixing, compacting, finished products, and their key equipment."
+pass_mark: 80
+questions_per_attempt: 5
+max_attempts: 3
+acknowledgment: |
+  I confirm that I have watched this training video and completed the assessment
+  myself. I have understood the content of this module of the Plant Technology
+  Training Manual (SMP-MAINT-TRAIN-002) and will apply it in my work. I will ask
+  my supervisor if anything is unclear.
+questions:
+  - id: mp1
+    text: {en: "Which process is the 'first line of defense' for product quality and downstream equipment?"}
+    options: {en: ["Mixing", "Intake and cleaning", "Cooling", "Bagging"]}
+    answer: 1
+  - id: mp2
+    text: {en: "Which equipment removes metal from raw materials at intake?"}
+    options: {en: ["Magnetic separator", "Pellet press", "Ribbon mixer", "Truck scale"]}
+    answer: 0
+  - id: mp3
+    text: {en: "Dosing and weighing must deliver ingredient quantities..."}
+    options: {en: ["As fast as possible", "Within defined tolerances of the formulation", "By operator estimate", "Only for macro ingredients"]}
+    answer: 1
+  - id: mp4
+    text: {en: "Hammer mill performance depends on..."}
+    options: {en: ["Hammer condition, sieve integrity and proper air balance", "Mixer paddle speed", "Steam pressure only", "Bag weight"]}
+    answer: 0
+  - id: mp5
+    text: {en: "Why is proper mixing critical?"}
+    options: {en: ["It cools the pellets", "Every portion of the product contains the intended nutritional composition", "It removes stones", "It reduces particle size"]}
+    answer: 1
+  - id: mp6
+    text: {en: "What are the three stages of the compacting process?"}
+    options: {en: ["Grinding, mixing, bagging", "Conditioning, pelleting, cooling", "Intake, cleaning, storage", "Dosing, weighing, mixing"]}
+    answer: 1
+  - id: mp7
+    text: {en: "What dual purpose does the compacting (pelleting) process serve?"}
+    options: {en: ["Sanitization through heat treatment and a durable, handleable product form", "Cleaning and dust removal", "Weighing and dosing", "Grinding and mixing"]}
+    answer: 0
+  - id: mp8
+    text: {en: "What is added during conditioning?"}
+    options: {en: ["Steam and/or liquids", "Compressed air", "Minerals only", "Cold water"]}
+    answer: 0
+  - id: mp9
+    text: {en: "Hot pellets are cooled to within how many degrees Celsius of ambient temperature?"}
+    options: {en: ["5", "15", "25", "50"]}
+    answer: 0
+  - id: mp10
+    text: {en: "What determines pellet diameter, length and quality?"}
+    options: {en: ["Die and roller specifications", "Truck scale", "Mixer type", "Aspiration fan"]}
+    answer: 0
