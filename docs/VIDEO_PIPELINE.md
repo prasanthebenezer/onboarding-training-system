@@ -6,15 +6,20 @@ Limit: **under 3 minutes per video**. Keep narration at or below about 330 Engli
    The SME reviews and approves. Anything not in the source document is not added.
 2. **Translate (Claude + human review):** `script.ar.md`, `script.hi.md`, `script.ml.md`, and the `ar/hi/ml` keys in `module.yaml`.
    A fluent colleague must check technical and safety wording before release.
-3. **Voiceover (Voice Studio, by admin):** record one audio file per language from the NARRATION lines.
-   Note where each scene starts in the audio (mm:ss). Motion uses these times.
+3. **Voiceover (Voice Studio, by admin):** voice tools read time cues aloud and can't place speech at a time, so record **one clip per scene**:
+   ```bash
+   python3 scripts/voiceover.py export content/modules/<slug> --lang en
+   ```
+   This writes `content/modules/<slug>/voiceover/en/scene01.txt ...` (narration only, no cues) and prints each scene's time slot.
+   Paste each file into Voice Studio separately and save the clips as `scene01.mp3`, `scene02.mp3`, ... in one folder.
 4. **Visuals (Claude Motion artifact):** one Motion video per language, built from the ON SCREEN lines, with scene lengths matched to that language's voiceover.
    Arabic on-screen text is laid out right to left. Export MP4 from Motion.
-5. **Merge audio + video (ffmpeg):**
+5. **Place the clips on the timeline and add them to the video:**
    ```bash
-   ffmpeg -i visuals_ar.mp4 -i voice_ar.mp3 -map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart ar.mp4
+   python3 scripts/voiceover.py assemble content/modules/<slug> --lang en --clips path/to/clips --video visuals_en.mp4 --out en.mp4
    ```
-   Check the length is under 3 minutes: `ffprobe -v error -show_entries format=duration -of csv=p=0 ar.mp4`
+   Each clip starts exactly at its scene time from `script.<lang>.md`. If a clip is longer than its scene, nothing is written and the script names the clip:
+   shorten that text or speed up the voice for that clip. Without `--video` it writes just the audio track (`--out voice_en.m4a`).
 6. **Upload:** `/admin/modules` → module → language row → Upload.
 7. **Changing content later:** edit the files, bump `version` in `module.yaml`, then import, upload the new videos and re-assign.
    Records of the old version stay valid for that version.

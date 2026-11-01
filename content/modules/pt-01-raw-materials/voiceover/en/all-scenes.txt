@@ -1,0 +1,15 @@
+Welcome to Plant Technology training. In this short module you will learn what feed raw materials are made of, and why that matters for the work we do in the mill.
+
+Every machine in our plant exists to handle, change or protect raw materials. When you understand the material, you understand why each process step and each piece of equipment is there. This helps you troubleshoot, maintain and optimize the plant.
+
+Every raw material arrives as fresh matter. Fresh matter has two parts: water and dry matter. Water is the moisture in the material, both free and bound. Its role is as a solvent for transport, and we measure it in kilograms.
+
+Dry matter holds all the nutritional value of the feed. It breaks down into five groups: carbohydrates, lipids, proteins, minerals, and other active substances.
+
+Carbohydrates and lipids are the energy sources, measured in megajoules. Carbohydrates include sugar for quick energy, starch for sustained energy, and crude fiber for digestive health. Lipids are the fats and oils.
+
+Proteins and minerals are building materials, measured in grams. Amino acids, the building blocks of protein, are used for muscle, tissue and enzyme production. Minerals include major elements like calcium and phosphorus, and trace elements like iron, zinc and copper.
+
+Finally, active substances: vitamins, hormones, enzymes and flavoring agents. They are used in very small amounts, measured in milligrams, but they have a big effect.
+
+To recap: water for transport, carbohydrates and lipids for energy, proteins and minerals for building, and active substances in milligrams. Now take the short quiz to complete this module.
