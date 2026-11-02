@@ -10,8 +10,15 @@
 <div class="card" style="margin-top:12px">
 <video id="v" controls playsinline preload="metadata" src="/t/{{ token }}/video/{{ item.id }}/{{ lang }}"></video>
 </div>
+{% if item.status == "passed" %}
+<div class="card"><p class="msg">✔ You have completed this lesson. You can watch the video again until {{ expires_at|dt("%d/%m/%Y") }}.</p>
+<a class="btn secondary" href="/t/{{ token }}/m/{{ item.id }}/certificate.pdf" target="_blank">Lesson certificate (PDF)</a></div>
+{% elif item.status == "failed" %}
+<div class="card"><p>No quiz attempts left. Contact your supervisor for re-training.</p></div>
+{% else %}
 <div class="card"><p>When you have watched the video, take the short quiz.</p>
 <a class="btn" href="/t/{{ token }}/m/{{ item.id }}/quiz?lang={{ lang }}">Take the quiz →</a></div>
+{% endif %}
 <script>
 (function(){const v=document.getElementById('v');let played=false;
 function send(e){fetch('/t/{{ token }}/m/{{ item.id }}/event',{method:'POST',headers:{'Content-Type':'application/json'},

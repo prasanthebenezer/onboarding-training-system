@@ -10,13 +10,15 @@
  {% if g.course %}
  <p class="tag-sm">Course</p><h2 style="margin-top:0">{{ g.course.title }}</h2>
  {% set done = g.rows|selectattr("item.status", "equalto", "passed")|list|length %}
+ {% set whole = g.rows|length == g.rows[0].total %}
+ {% if not whole %}<p class="muted small">You are assigned {{ g.rows|length }} of the {{ g.rows[0].total }} lessons in this course.</p>{% endif %}
  <p class="muted">{{ done }} of {{ g.rows|length }} assigned lesson{{ "s" if g.rows|length != 1 }} completed</p>
  {% if g.completion %}<p class="msg">✔ Course completed · <a href="/t/{{ a.token }}/course/{{ g.completion.id }}/certificate.pdf" target="_blank">Course certificate (PDF)</a></p>{% endif %}
  {% else %}<h2 style="margin-top:0">Other lessons</h2>{% endif %}
  {% for r in g.rows %}{% set i = r.item %}
  <div class="lesson {{ 'locked' if r.locked_by }}">
   <div>
-   {% if r.number %}<span class="muted">Lesson {{ r.number }} of {{ r.total }}</span><br>{% endif %}
+   {% if r.number %}<span class="muted">{% if whole %}Lesson {{ r.number }} of {{ r.total }}{% else %}Course lesson {{ r.number }}{% endif %}</span><br>{% endif %}
    <b>{{ i.module_version.title }}</b>
    {% if r.locked_by %}<span class="badge">🔒 Locked</span>{% else %}<span class="badge {{ i.status }}">{{ labels[i.status] }}</span>{% endif %}
    <div class="muted small">{{ i.module_version.summary }}</div>
@@ -24,7 +26,8 @@
   </div>
   <div>
    {% if r.locked_by %}
-   {% elif i.status == "passed" %}<a class="btn secondary" href="/t/{{ a.token }}/m/{{ i.id }}/done">Certificate</a>
+   {% elif i.status == "passed" %}<a class="btn secondary" href="/t/{{ a.token }}/m/{{ i.id }}">Watch again ▶</a>
+   <a class="btn secondary" href="/t/{{ a.token }}/m/{{ i.id }}/done">Certificate</a>
    {% elif i.status != "failed" %}<a class="btn" href="/t/{{ a.token }}/m/{{ i.id }}">Start ▶</a>{% endif %}
   </div>
  </div>

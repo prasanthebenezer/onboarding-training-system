@@ -2,16 +2,20 @@
 {% block content %}
 <h1>Personal links {% if filtered %}<a class="btn secondary" href="/admin/assignments">show all</a>{% endif %}</h1>
 {% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
-<p class="muted">Tap “Send on WhatsApp”: WhatsApp opens with the message ready. Press Send in WhatsApp. The time you opened it is recorded.</p>
+<p class="muted">Tap “Send on WhatsApp”: WhatsApp opens with the message ready. Press Send in WhatsApp. The time you opened it is recorded. “Delete link” removes a link nobody has taken a quiz on; a link with quiz records can only be disabled, so the records are kept.</p>
 <div class="card table-wrap"><table>
 <tr><th>Trainee</th><th>Modules</th><th>Due</th><th>Expires</th><th>Opened in WhatsApp</th><th></th></tr>
-{% for a, wa in rows %}<tr>
+{% for a, wa, expired, has_records in rows %}<tr>
 <td>{{ a.trainee.name }}<br><span class="muted">+{{ a.trainee.phone }}</span></td>
 <td>{% for i in a.items %}{{ i.module_version.title }} <span class="badge {{ i.status }}">{{ i.status }}</span><br>{% endfor %}</td>
-<td>{{ a.due_date|dt("%d/%m/%Y") }}</td><td>{{ a.expires_at|dt("%d/%m/%Y") }}</td>
+<td>{{ a.due_date|dt("%d/%m/%Y") }}</td><td>{{ a.expires_at|dt("%d/%m/%Y") }}{% if expired %}<br><span class="badge failed">link disabled</span>{% endif %}</td>
 <td id="sent-{{ a.id }}">{{ a.sent_at|dt }}</td>
-<td><a class="btn wa" href="{{ wa }}" target="_blank" rel="noopener" onclick="fetch('/admin/assignments/{{ a.id }}/sent',{method:'POST'}).then(()=>document.getElementById('sent-{{ a.id }}').textContent='just now')">Send on WhatsApp</a>
-<br><button class="btn secondary" style="margin-top:6px" onclick="navigator.clipboard.writeText('{{ base_url }}/t/{{ a.token }}');this.textContent='Copied'">Copy link</button></td>
+<td>{% if not expired %}<a class="btn wa" href="{{ wa }}" target="_blank" rel="noopener" onclick="fetch('/admin/assignments/{{ a.id }}/sent',{method:'POST'}).then(()=>document.getElementById('sent-{{ a.id }}').textContent='just now')">Send on WhatsApp</a>
+<br><button class="btn secondary" style="margin-top:6px" onclick="navigator.clipboard.writeText('{{ base_url }}/t/{{ a.token }}');this.textContent='Copied'">Copy link</button>{% endif %}
+{% if not (expired and has_records) %}
+<form method="post" action="/admin/assignments/{{ a.id }}/delete" style="margin-top:6px"
+ onsubmit="return confirm({{ ('Disable this link for ' ~ a.trainee.name ~ '? It stops working at once. Its quiz and acknowledgment records are kept.' if has_records else 'Delete this link for ' ~ a.trainee.name ~ '? It stops working at once.')|tojson }})">
+<button class="btn danger sm">{{ "Disable link" if has_records else "Delete link" }}</button></form>{% endif %}</td>
 </tr>{% else %}<tr><td colspan="6" class="muted">No links.</td></tr>{% endfor %}
 </table></div>
 {% endblock %}

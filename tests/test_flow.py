@@ -249,3 +249,57 @@ def test_course_order_lock_and_certificate(client):
     client.post(f"/t/{t2}/language", data={"lang": "en"})
     home = client.get(f"/t/{t2}").text
     assert "🔒" not in home and "Start ▶" in home
+    # only lesson 4 is assigned: the page must not read as if the whole course were
+    assert "of 4" not in home and "Course lesson 4" in home and "assigned 1 of the 4 lessons" in home
+    assert home.count('class="lesson') == 1
+
+
+def test_after_passing_video_stays_and_quiz_is_closed(client):
+    token, answers = _setup(client)
+    client.post(f"/t/{token}", data={"employee_id": "E100"})
+    r = _pass_lesson(client, token, 1, answers)
+    assert "Watch the video again" in r.text
+    # Back from the certificate: quiz and acknowledgment pages send the trainee to the video
+    for path in ("/quiz", "/ack"):
+        r = client.get(f"/t/{token}/m/1{path}", follow_redirects=False)
+        assert r.status_code == 303 and r.headers["location"] == f"/t/{token}/m/1"
+    w = client.get(f"/t/{token}/m/1").text
+    assert "/video/1/" in w and "Take the quiz" not in w and "completed this lesson" in w
+    assert client.get(f"/t/{token}/video/1/ar").status_code == 200
+    assert "Watch again" in client.get(f"/t/{token}").text
+    # a stale quiz form posted again does not create another attempt
+    client.post(f"/t/{token}/m/1/quiz", data={})
+    from app.db import SessionLocal
+    from app.models import QuizAttempt
+    with SessionLocal() as db:
+        assert db.query(QuizAttempt).count() == 1
+
+
+def test_quiz_page_is_not_cached(client):
+    token, _ = _setup(client)
+    client.post(f"/t/{token}", data={"employee_id": "E100"})
+    client.get(f"/t/{token}/m/1")
+    assert client.get(f"/t/{token}/m/1/quiz").headers["cache-control"] == "no-store"
+
+
+def test_delete_link(client):
+    token, answers = _setup(client)
+    client.post(f"/t/{token}", data={"employee_id": "E100"})
+    client.get(f"/t/{token}/m/1")  # a view event only: no records yet
+    assert "Delete link" in client.get("/admin/assignments", auth=ADMIN).text
+    r = client.post("/admin/assignments/1/delete", auth=ADMIN)
+    assert "deleted" in r.text and "No links." in r.text
+    assert client.get(f"/t/{token}").status_code == 404
+    assert "Chain intact" in client.get("/admin/audit", auth=ADMIN).text
+
+
+def test_link_with_records_is_disabled_not_deleted(client):
+    token, answers = _setup(client)
+    client.post(f"/t/{token}", data={"employee_id": "E100"})
+    _pass_lesson(client, token, 1, answers)
+    assert "Disable link" in client.get("/admin/assignments", auth=ADMIN).text
+    r = client.post("/admin/assignments/1/delete", auth=ADMIN)
+    assert "disabled" in r.text and "link disabled" in r.text and "Disable link" not in r.text
+    assert "Link expired" in client.get(f"/t/{token}").text
+    assert client.get(f"/t/{token}/m/1").status_code == 410
+    assert "Test Tech" in client.get("/admin/records", auth=ADMIN).text  # records kept

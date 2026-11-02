@@ -10,3 +10,7 @@
 <button>Submit answers</button>
 </form>
 {% endblock %}
+{% block scripts %}<script>
+// a page restored from the back/forward cache is reloaded, so the server can send a completed lesson to its video
+window.addEventListener('pageshow', e => { if (e.persisted) location.reload(); });
+</script>{% endblock %}

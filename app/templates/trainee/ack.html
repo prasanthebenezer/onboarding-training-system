@@ -10,3 +10,7 @@
 <input name="typed_name" placeholder="Type your full name to sign" required minlength="3" style="width:100%"><br><br>
 <button>Sign and submit</button></form>
 </div>{% endblock %}
+{% block scripts %}<script>
+// a page restored from the back/forward cache is reloaded, so the server can send a completed lesson to its video
+window.addEventListener('pageshow', e => { if (e.persisted) location.reload(); });
+</script>{% endblock %}

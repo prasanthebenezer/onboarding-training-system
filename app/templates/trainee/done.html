@@ -4,6 +4,7 @@
 <p>{{ item.module_version.title }} (v{{ item.module_version.version }})</p>
 <p>Certificate No: <b>{{ item.acknowledgment.certificate_no }}</b></p>
 <a class="btn secondary" href="/t/{{ token }}/m/{{ item.id }}/certificate.pdf" target="_blank">Lesson certificate (PDF)</a>
+<a class="btn secondary" href="/t/{{ token }}/m/{{ item.id }}">Watch the video again ▶</a>
 </div>
 {% if group and group.completion %}
 <div class="card"><h2>🎓 Course completed: {{ group.course.title }}</h2>

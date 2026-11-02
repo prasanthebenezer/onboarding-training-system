@@ -8,7 +8,7 @@ from datetime import datetime, time, timedelta, timezone
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from .. import audit, authoring, courses
@@ -16,7 +16,7 @@ from ..certificates import build_certificate, build_course_certificate
 from ..config import LANGUAGES, AdminUser, settings
 from ..db import get_db
 from ..models import (Acknowledgment, Assignment, AssignmentItem, AuditLog, Course, CourseCompletion, Module,
-                      ModuleVersion, Trainee, Video, utcnow)
+                      ModuleVersion, Trainee, Video, ViewEvent, utcnow)
 from ..security import new_token, require_admin
 from ..templating import templates
 from ..whatsapp import message_text, normalize_phone, wa_link
@@ -300,7 +300,7 @@ def assignments(request: Request, ids: str = "", msg: str | None = None, user: A
         q = q.where(Assignment.id.in_(only))
     rows = db.scalars(q.limit(300)).all()
     return templates.TemplateResponse(request, "admin/assignments.html", {
-        "user": user, "rows": [(a, _wa(a)) for a in rows], "filtered": bool(ids), "msg": msg, "base_url": settings.base_url})
+        "user": user, "rows": [(a, _wa(a), _expired(a), any(i.attempts for i in a.items)) for a in rows], "filtered": bool(ids), "msg": msg, "base_url": settings.base_url})
 
 
 @router.post("/assignments/{aid}/sent")
@@ -310,6 +310,36 @@ def mark_sent(aid: int, user: AdminUser = Depends(require_admin), db: Session = 
     audit.log(db, user.username, "whatsapp_opened", "assignment", a.id, {"phone": a.trainee.phone})
     db.commit()
     return {"ok": True}
+
+
+@router.post("/assignments/{aid}/delete")
+def delete_assignment(aid: int, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
+    """Removes a personal link. A link with quiz attempts holds training records (ISO evidence),
+    so it is disabled instead: the link stops working and the records stay."""
+    a = db.get(Assignment, aid) or _404()
+    snapshot = {"trainee": a.trainee.employee_id, "module_version_ids": [i.module_version_id for i in a.items],
+                "statuses": {i.module_version_id: i.status for i in a.items},
+                "created_by": a.created_by, "created_at": a.created_at, "sent_at": a.sent_at}
+    if any(i.attempts for i in a.items):
+        if _expired(a):
+            return _go("/admin/assignments?msg=" + quote("This link is already disabled. Its training records are kept."))
+        a.expires_at = utcnow()
+        audit.log(db, user.username, "assignment_disabled", "assignment", a.id, snapshot)
+        db.commit()
+        return _go("/admin/assignments?msg=" + quote(
+            f"Link for {a.trainee.name} disabled. It has quiz records, so it stays listed for the training records."))
+    for i in a.items:
+        db.execute(delete(ViewEvent).where(ViewEvent.item_id == i.id))
+        db.delete(i)
+    db.delete(a)
+    audit.log(db, user.username, "assignment_deleted", "assignment", aid, snapshot)
+    db.commit()
+    return _go("/admin/assignments?msg=" + quote(f"Link for {snapshot['trainee']} deleted."))
+
+
+def _expired(a: Assignment) -> bool:
+    exp = a.expires_at
+    return (exp.replace(tzinfo=timezone.utc) if exp.tzinfo is None else exp) <= utcnow()
 
 
 # ---------- records ----------

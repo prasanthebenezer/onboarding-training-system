@@ -172,6 +172,7 @@ def watch(token: str, item_id: int, request: Request, lang: str | None = None, d
     return templates.TemplateResponse(request, "trainee/watch.html", {
         "token": token, "item": item, "lang": lang, "videos": vids, "languages": LANGUAGES,
         "chosen": chosen, "missing_chosen": bool(vids) and chosen not in vids,
+        "expires_at": item.assignment.expires_at,
         "can_change": len(available_langs(item.assignment)) > 1})
 
 
@@ -203,6 +204,13 @@ def video_file(token: str, item_id: int, lang: str, request: Request, db: Sessio
     return FileResponse(path, media_type="video/mp4")
 
 
+def _no_store(resp):
+    """Quiz and acknowledgment pages must not come back from the browser cache on Back:
+    after the lesson is completed the server sends the trainee to the video instead."""
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 def _open_attempt(item: AssignmentItem) -> QuizAttempt | None:
     return next((t for t in item.attempts if t.submitted_at is None), None)
 
@@ -211,8 +219,8 @@ def _open_attempt(item: AssignmentItem) -> QuizAttempt | None:
 def quiz(token: str, item_id: int, request: Request, lang: str = "en", db: Session = Depends(get_db)):
     item = _item(db, request, token, item_id)
     mv = item.module_version
-    if item.status == "passed":
-        return RedirectResponse(f"/t/{token}/m/{item_id}/done", status_code=303)
+    if item.status == "passed":  # one pass per lesson; Back from the certificate lands on the video
+        return RedirectResponse(f"/t/{token}/m/{item_id}", status_code=303)
     if item.status == "failed":
         return templates.TemplateResponse(request, "trainee/message.html", {
             "title": "No attempts left", "msg": "Contact your supervisor for re-training."})
@@ -232,9 +240,9 @@ def quiz(token: str, item_id: int, request: Request, lang: str = "en", db: Sessi
         db.commit()
     by_id = _questions_by_id(item)
     qs = [_localize(by_id[qid], attempt.lang) for qid in attempt.question_ids]
-    return templates.TemplateResponse(request, "trainee/quiz.html", {
+    return _no_store(templates.TemplateResponse(request, "trainee/quiz.html", {
         "token": token, "item": item, "attempt": attempt, "questions": qs,
-        "dir": LANGUAGES[attempt.lang]["dir"]})
+        "dir": LANGUAGES[attempt.lang]["dir"]}))
 
 
 @router.post("/{token}/m/{item_id}/quiz")
@@ -250,9 +258,9 @@ async def submit_quiz(token: str, item_id: int, request: Request, db: Session = 
         raw = form.get(f"q_{qid}")
         if raw is None or not str(raw).isdigit():
             qs = [_localize(by_id[i], attempt.lang) for i in attempt.question_ids]
-            return templates.TemplateResponse(request, "trainee/quiz.html", {
+            return _no_store(templates.TemplateResponse(request, "trainee/quiz.html", {
                 "token": token, "item": item, "attempt": attempt, "questions": qs,
-                "dir": LANGUAGES[attempt.lang]["dir"], "error": "Please answer every question."}, status_code=400)
+                "dir": LANGUAGES[attempt.lang]["dir"], "error": "Please answer every question."}, status_code=400))
         answers[qid] = int(raw)
         correct += int(raw) == by_id[qid]["answer"]
     mv = item.module_version
@@ -277,10 +285,10 @@ async def submit_quiz(token: str, item_id: int, request: Request, db: Session = 
 def ack_form(token: str, item_id: int, request: Request, db: Session = Depends(get_db)):
     item = _item(db, request, token, item_id)
     if item.acknowledgment:
-        return RedirectResponse(f"/t/{token}/m/{item_id}/done", status_code=303)
+        return RedirectResponse(f"/t/{token}/m/{item_id}", status_code=303)
     if not any(t.passed for t in item.attempts):
         return RedirectResponse(f"/t/{token}/m/{item_id}/quiz", status_code=303)
-    return templates.TemplateResponse(request, "trainee/ack.html", {"token": token, "item": item, "error": None})
+    return _no_store(templates.TemplateResponse(request, "trainee/ack.html", {"token": token, "item": item, "error": None}))
 
 
 @router.post("/{token}/m/{item_id}/ack")
@@ -293,9 +301,9 @@ def ack_submit(token: str, item_id: int, request: Request, typed_name: str = For
     if not passed:
         return RedirectResponse(f"/t/{token}/m/{item_id}/quiz", status_code=303)
     if not agree or len(typed_name.strip()) < 3:
-        return templates.TemplateResponse(request, "trainee/ack.html", {
+        return _no_store(templates.TemplateResponse(request, "trainee/ack.html", {
             "token": token, "item": item,
-            "error": "Tick the box and type your full name to sign."}, status_code=400)
+            "error": "Tick the box and type your full name to sign."}, status_code=400))
     now = utcnow()
     trainee = item.assignment.trainee
     ack = Acknowledgment(
