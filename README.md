@@ -35,10 +35,24 @@ pytest -q
 - `docs/VIDEO_PIPELINE.md`: SOP → script → Motion → voiceover → MP4
 - `docs/DEPLOY.md`: Hostinger VPS deployment, backups
 
-## Content in this repo
-Pilot: **Plant Technology Training Manual (SMP-MAINT-TRAIN-002 v1)**, split into 4 modules:
+## Adding a course (e.g. Safety)
+1. Add each lesson as `content/modules/<lesson-slug>/module.yaml` (quiz, acknowledgment) and `script.en.md`.
+2. Add `content/courses/<course-slug>/course.yaml`:
+   ```yaml
+   slug: safety
+   title: "Safety"
+   summary: "..."
+   position: 20          # courses are listed in this order
+   lessons:              # lesson order
+     - safety-01-loto
+     - safety-02-confined-space
+   ```
+3. Commit and push, `git pull` on the VPS, then Admin → **Courses & lessons** → **Import content from repository**.
 
-| Module | Manual section | Narration (EN) | Quiz bank |
+## Content in this repo
+Course **Plant Technology** (`content/courses/plant-technology/`), from the Plant Technology Training Manual (SMP-MAINT-TRAIN-002 v1), in 4 lessons:
+
+| Lesson | Manual section | Narration (EN) | Quiz bank |
 |---|---|---|---|
 | pt-01 Raw Material Composition | 1-2 | 262 words | 9 |
 | pt-02 Pre- vs Post-Grinding | 3 | 213 words | 8 |

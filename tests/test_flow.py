@@ -6,7 +6,7 @@ ADMIN = ("boss", "pw")
 
 def _setup(client):
     r = client.post("/admin/modules/sync", auth=ADMIN)
-    assert r.status_code == 200 and "Published: pt-01-raw-materials v1" in r.text, r.text
+    assert r.status_code == 200 and "Published / updated: pt-01-raw-materials v1" in r.text, r.text
     from app.db import SessionLocal
     from app.models import ModuleVersion
     with SessionLocal() as db:
@@ -58,7 +58,7 @@ def test_full_trainee_flow(client):
     assert "Training acknowledgment" in r.text
     assert client.post(f"/t/{token}/m/1/ack", data={"typed_name": "Test Tech"}).status_code == 400
     r = client.post(f"/t/{token}/m/1/ack", data={"typed_name": "Test Tech", "agree": "1"})
-    assert "Training completed" in r.text
+    assert "Lesson completed" in r.text
     pdf = client.get(f"/t/{token}/m/1/certificate.pdf")
     assert pdf.content.startswith(b"%PDF")
 
@@ -149,3 +149,78 @@ def test_admin_has_no_language_field(client):
     r = client.post("/admin/trainees/import", auth=ADMIN, files={"file": (
         "t.csv", b"employee_id,name,phone,role,preferred_lang\nE7,Old Format,+966500000007,Technician,hi\n", "text/csv")})
     assert "1 added" in r.text  # old CSVs with a language column still import; the column is ignored
+
+
+def _pass_lesson(client, token, item_id, answers):
+    client.get(f"/t/{token}/m/{item_id}")
+    q = client.get(f"/t/{token}/m/{item_id}/quiz").text
+    qids = re.findall(r'name="q_(\w+)" value="0"', q)
+    r = client.post(f"/t/{token}/m/{item_id}/quiz", data={f"q_{i}": answers[i] for i in qids})
+    assert "Training acknowledgment" in r.text, r.text[:300]
+    return client.post(f"/t/{token}/m/{item_id}/ack", data={"typed_name": "Test Tech", "agree": "1"})
+
+
+def test_course_order_lock_and_certificate(client):
+    client.post("/admin/modules/sync", auth=ADMIN)
+    from app.db import SessionLocal
+    from app.models import AssignmentItem, CourseCompletion, Module, ModuleVersion
+    with SessionLocal() as db:
+        mvs = {m.slug: db.get(ModuleVersion, m.current_version_id) for m in db.query(Module)}
+        answers = {q["id"]: q["answer"] for mv in mvs.values() for q in mv.questions}
+        ids = {slug: mv.id for slug, mv in mvs.items()}
+    for mv_id in ids.values():
+        client.post(f"/admin/modules/{mv_id}/video", auth=ADMIN, data={"lang": "en"},
+                    files={"file": ("v.mp4", b"\x00\x00\x00\x18ftypmp42" + b"0" * 50, "video/mp4")})
+    assert "Course: Plant Technology" in client.get("/admin/modules", auth=ADMIN).text
+    page = client.get("/admin/assign", auth=ADMIN).text
+    assert 'class="course-all"' in page and "Lesson 4 · Plant Technology 4" in page
+    client.post("/admin/trainees", auth=ADMIN, data={"employee_id": "E9", "name": "Course Tech",
+                                                     "phone": "+966500000009", "role": "Technician"})
+    # submitted out of order on purpose: items must still be created in lesson order
+    order = ["pt-03-main-processes", "pt-01-raw-materials", "pt-04-secondary-services", "pt-02-plant-configurations"]
+    r = client.post("/admin/assign", auth=ADMIN, data={"trainee_ids": ["1"], "module_version_ids": [str(ids[s]) for s in order]})
+    token = re.search(r"/t/([A-Za-z0-9_-]+)", unquote(re.search(r'href="(https://wa\.me/[^"]+)"', r.text).group(1))).group(1)
+    with SessionLocal() as db:
+        items = {db.get(ModuleVersion, i.module_version_id).module.slug: i.id for i in db.query(AssignmentItem)}
+    assert sorted(items.values()) == [items[s] for s in sorted(items)]  # ids follow lesson order
+
+    client.post(f"/t/{token}", data={"employee_id": "E9"})
+    client.post(f"/t/{token}/language", data={"lang": "en"})
+    home = client.get(f"/t/{token}").text
+    assert "Plant Technology" in home and "Lesson 1 of 4" in home and home.count("🔒 Locked") == 3
+
+    # lesson 2 is locked: every lesson page bounces back to the list with a notice
+    for path in ("", "/quiz", "/ack"):
+        r = client.get(f"/t/{token}/m/{items['pt-02-plant-configurations']}{path}")
+        assert "Finish “Plant Technology 1: Raw Material Composition” first." in r.text
+
+    r = _pass_lesson(client, token, items["pt-01-raw-materials"], answers)
+    assert "Start next lesson" in r.text and "Plant Technology 2" in r.text
+    assert client.get(f"/t/{token}").text.count("🔒 Locked") == 2
+    for s in order[3:] + ["pt-03-main-processes"]:
+        r = _pass_lesson(client, token, items[s], answers)
+        assert "Course completed" not in r.text
+    r = _pass_lesson(client, token, items["pt-04-secondary-services"], answers)
+    assert "Course completed: Plant Technology" in r.text
+
+    with SessionLocal() as db:
+        cc = db.query(CourseCompletion).one()
+        assert [l["position"] for l in sorted(cc.lessons, key=lambda l: l["position"])] == [1, 2, 3, 4]
+        cc_id, cc_no = cc.id, cc.certificate_no
+    pdf = client.get(f"/t/{token}/course/{cc_id}/certificate.pdf")
+    assert pdf.content.startswith(b"%PDF")
+    rec = client.get("/admin/records", auth=ADMIN).text
+    assert cc_no in rec and client.get(f"/admin/courses/{cc_id}/certificate.pdf", auth=ADMIN).content.startswith(b"%PDF")
+    csv_text = client.get("/admin/records.csv", auth=ADMIN).text
+    assert "course,lesson_no,lesson" in csv_text.splitlines()[0] and "Plant Technology,4," in csv_text
+
+    # a second trainee gets only lesson 4 as a refresher: not locked by lessons that weren't assigned
+    client.post("/admin/trainees", auth=ADMIN, data={"employee_id": "E10", "name": "Refresher Tech",
+                                                     "phone": "+966500000010", "role": "Technician"})
+    r = client.post("/admin/assign", auth=ADMIN, data={"trainee_ids": ["2"], "module_version_ids": [str(ids["pt-04-secondary-services"])]})
+    t2 = re.search(r"/t/([A-Za-z0-9_-]+)", unquote(re.search(r'href="(https://wa\.me/[^"]+)"', r.text).group(1))).group(1)
+    client.cookies.clear()
+    client.post(f"/t/{t2}", data={"employee_id": "E10"})
+    client.post(f"/t/{t2}/language", data={"lang": "en"})
+    home = client.get(f"/t/{t2}").text
+    assert "🔒" not in home and "Start ▶" in home

@@ -9,11 +9,12 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import audit
-from ..certificates import build_certificate
+from .. import audit, courses
+from ..certificates import build_certificate, build_course_certificate
 from ..config import LANGUAGES, settings
 from ..db import get_db
-from ..models import Acknowledgment, Assignment, AssignmentItem, QuizAttempt, Video, ViewEvent, utcnow
+from ..models import (Acknowledgment, Assignment, AssignmentItem, CourseCompletion, QuizAttempt, Video,
+                      ViewEvent, utcnow)
 from ..security import client_ip
 from ..templating import templates
 
@@ -48,7 +49,16 @@ def _item(db: Session, request: Request, token: str, item_id: int) -> Assignment
     item = db.get(AssignmentItem, item_id)
     if not item or item.assignment_id != a.id:
         raise HTTPException(404)
+    blocker = courses.locked_by(db, item)
+    if blocker is not None:
+        raise LessonLocked(token, blocker.module_version.title)
     return item
+
+
+class LessonLocked(Exception):
+    """Raised for a lesson whose earlier lesson (same course, same link) is not passed yet."""
+    def __init__(self, token: str, needed: str):
+        self.token, self.needed = token, needed
 
 
 def _videos(item: AssignmentItem) -> dict[str, Video]:
@@ -75,7 +85,8 @@ def landing(token: str, request: Request, db: Session = Depends(get_db)):
     if request.session.get("lang") not in LANGUAGES:
         return _language_page(request, a)
     return templates.TemplateResponse(request, "trainee/modules.html", {
-        "a": a, "languages": LANGUAGES, "lang": request.session["lang"]})
+        "a": a, "languages": LANGUAGES, "lang": request.session["lang"], "groups": courses.grouped(db, a),
+        "notice": request.query_params.get("notice")})
 
 
 def _language_page(request: Request, a: Assignment):
@@ -280,6 +291,7 @@ def ack_submit(token: str, item_id: int, request: Request, typed_name: str = For
     audit.log(db, trainee.employee_id, "acknowledged", "acknowledgment", ack.id, {
         "item_id": item.id, "module_version_id": item.module_version_id, "typed_name": ack.typed_name,
         "certificate_no": ack.certificate_no, "statement": ack.statement, "ip": ack.ip})
+    courses.complete_courses(db, trainee, trainee.employee_id)
     db.commit()
     return RedirectResponse(f"/t/{token}/m/{item_id}/done", status_code=303)
 
@@ -289,7 +301,25 @@ def done(token: str, item_id: int, request: Request, db: Session = Depends(get_d
     item = _item(db, request, token, item_id)
     if not item.acknowledgment:
         return RedirectResponse(f"/t/{token}/m/{item_id}/quiz", status_code=303)
-    return templates.TemplateResponse(request, "trainee/done.html", {"token": token, "item": item})
+    a = item.assignment
+    group = next((g for g in courses.grouped(db, a) if any(r.item.id == item.id for r in g.rows)), None)
+    nxt = None
+    if group and group.course:
+        nxt = next((r.item for r in group.rows if r.item.status != "passed" and r.locked_by is None), None)
+    return templates.TemplateResponse(request, "trainee/done.html", {
+        "token": token, "item": item, "group": group, "next_item": nxt})
+
+
+@router.get("/{token}/course/{cc_id}/certificate.pdf")
+def course_certificate(token: str, cc_id: int, request: Request, db: Session = Depends(get_db)):
+    a = _assignment(db, token)
+    if not _verified(request, a):
+        raise HTTPException(403)
+    cc = db.get(CourseCompletion, cc_id)
+    if not cc or cc.trainee_id != a.trainee_id:
+        raise HTTPException(404)
+    return Response(build_course_certificate(cc), media_type="application/pdf", headers={
+        "Content-Disposition": f'inline; filename="{cc.certificate_no}.pdf"'})
 
 
 @router.get("/{token}/m/{item_id}/certificate.pdf")

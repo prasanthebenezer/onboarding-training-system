@@ -2,14 +2,30 @@
 {% block content %}
 <h1>Assign training</h1>
 <form method="post" action="/admin/assign">
-<div class="card"><h2>1. Modules</h2>
-{% for mv in versions %}<label style="display:block;margin:6px 0"><input type="checkbox" name="module_version_ids" value="{{ mv.id }}"> {{ mv.title }} <span class="muted">v{{ mv.version }} · videos: {{ mv.videos|map(attribute="lang")|join(", ") or "none yet" }}</span></label>
-{% else %}<p class="muted">Import modules first.</p>{% endfor %}</div>
+<div class="card"><h2>1. Courses and lessons</h2>
+<p class="muted">Tick a course to assign all its lessons, or tick single lessons. Lessons of a course unlock in order.</p>
+{% for course, versions in catalog %}
+<fieldset class="course-pick">
+ {% if course %}<legend><label><input type="checkbox" class="course-all" data-course="c{{ course.id }}"> <b>{{ course.title }}</b> <span class="muted">· all {{ versions|length }} lessons</span></label></legend>
+ {% else %}<legend><b>Lessons not in a course</b></legend>{% endif %}
+ {% for mv in versions %}<label style="display:block;margin:6px 0 6px 26px"><input type="checkbox" name="module_version_ids" value="{{ mv.id }}" data-course="{{ 'c' ~ course.id if course else '' }}">
+ {% if course %}Lesson {{ loop.index }} · {% endif %}{{ mv.title }} <span class="muted">v{{ mv.version }} · videos: {{ mv.videos|map(attribute="lang")|join(", ") or "none yet" }}</span></label>{% endfor %}
+</fieldset>
+{% else %}<p class="muted">Import content first.</p>{% endfor %}</div>
 <div class="card"><h2>2. Trainees</h2>
 <label><input type="checkbox" onclick="document.querySelectorAll('[name=trainee_ids]').forEach(c=>c.checked=this.checked)"> <b>Select all</b></label>
-{% for t in trainees %}<label style="display:block;margin:6px 0"><input type="checkbox" name="trainee_ids" value="{{ t.id }}"> {{ t.name }} <span class="muted">{{ t.employee_id }} · {{ t.role }} · {{ languages[t.preferred_lang].name }}</span></label>{% endfor %}</div>
+{% for t in trainees %}<label style="display:block;margin:6px 0"><input type="checkbox" name="trainee_ids" value="{{ t.id }}"> {{ t.name }} <span class="muted">{{ t.employee_id }} · {{ t.role }}</span></label>{% endfor %}</div>
 <div class="card"><h2>3. Due date (optional)</h2><input type="date" name="due_date">
-<p class="muted">Modules a trainee has already passed (same version) are skipped automatically.</p>
+<p class="muted">Lessons a trainee has already passed (same version) are skipped automatically.</p>
 <button>Create personal links</button></div>
 </form>
+<script>
+document.querySelectorAll('.course-all').forEach(function (all) {
+  var boxes = document.querySelectorAll('[name=module_version_ids][data-course="' + all.dataset.course + '"]');
+  function sync() { var n = [].filter.call(boxes, function (b) { return b.checked; }).length;
+    all.checked = n === boxes.length; all.indeterminate = n > 0 && n < boxes.length; }
+  all.addEventListener('change', function () { boxes.forEach(function (b) { b.checked = all.checked; }); });
+  boxes.forEach(function (b) { b.addEventListener('change', sync); });
+});
+</script>
 {% endblock %}

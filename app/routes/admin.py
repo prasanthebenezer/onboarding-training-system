@@ -9,12 +9,12 @@ from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import audit, content_loader
-from ..certificates import build_certificate
+from .. import audit, content_loader, courses
+from ..certificates import build_certificate, build_course_certificate
 from ..config import LANGUAGES, AdminUser, settings
 from ..db import get_db
-from ..models import (Acknowledgment, Assignment, AssignmentItem, AuditLog, Module, ModuleVersion,
-                      Trainee, Video, utcnow)
+from ..models import (Acknowledgment, Assignment, AssignmentItem, AuditLog, CourseCompletion, Module,
+                      ModuleVersion, Trainee, Video, utcnow)
 from ..security import new_token, require_admin
 from ..templating import templates
 from ..whatsapp import message_text, normalize_phone, wa_link
@@ -101,20 +101,16 @@ def _404():
 # ---------- modules & videos ----------
 @router.get("/modules")
 def modules(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
-    mods = db.scalars(select(Module).order_by(Module.slug)).all()
-    current = {m.id: db.get(ModuleVersion, m.current_version_id) for m in mods if m.current_version_id}
     return templates.TemplateResponse(request, "admin/modules.html", {
-        "user": user, "modules": mods, "current": current, "languages": LANGUAGES,
+        "user": user, "catalog": courses.assign_catalog(db), "languages": LANGUAGES,
         "msg": request.query_params.get("msg")})
 
 
 @router.post("/modules/sync")
 def sync_modules(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
     report = content_loader.sync(db, user.username)
-    mods = db.scalars(select(Module).order_by(Module.slug)).all()
-    current = {m.id: db.get(ModuleVersion, m.current_version_id) for m in mods if m.current_version_id}
     return templates.TemplateResponse(request, "admin/modules.html", {
-        "user": user, "modules": mods, "current": current, "languages": LANGUAGES, "report": report})
+        "user": user, "catalog": courses.assign_catalog(db), "languages": LANGUAGES, "report": report})
 
 
 @router.post("/modules/{mv_id}/video")
@@ -152,18 +148,17 @@ async def upload_video(mv_id: int, lang: str = Form(...), file: UploadFile = Fil
 @router.get("/assign")
 def assign_form(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
     people = db.scalars(select(Trainee).where(Trainee.active).order_by(Trainee.name)).all()
-    mods = db.scalars(select(Module).where(Module.active, Module.current_version_id.is_not(None))
-                      .order_by(Module.slug)).all()
-    versions = [db.get(ModuleVersion, m.current_version_id) for m in mods]
     return templates.TemplateResponse(request, "admin/assign.html", {
-        "user": user, "trainees": people, "versions": versions, "languages": LANGUAGES})
+        "user": user, "trainees": people, "catalog": courses.assign_catalog(db), "languages": LANGUAGES})
 
 
 @router.post("/assign")
 async def assign(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
     form = await request.form()
     trainee_ids = [int(x) for x in form.getlist("trainee_ids")]
-    mv_ids = [int(x) for x in form.getlist("module_version_ids")]
+    mv_ids = list(dict.fromkeys(int(x) for x in form.getlist("module_version_ids")))
+    order = courses.lesson_order_key(db)
+    mv_ids.sort(key=lambda i: order(db.get(ModuleVersion, i) or _404()))
     if not trainee_ids or not mv_ids:
         raise HTTPException(400, "Select at least one trainee and one module.")
     due = None
@@ -225,7 +220,18 @@ def mark_sent(aid: int, user: AdminUser = Depends(require_admin), db: Session = 
 @router.get("/records")
 def records(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
     acks = db.scalars(select(Acknowledgment).order_by(Acknowledgment.at.desc())).all()
-    return templates.TemplateResponse(request, "admin/records.html", {"user": user, "acks": acks})
+    completions = db.scalars(select(CourseCompletion).order_by(CourseCompletion.completed_at.desc())).all()
+    idx = courses.lesson_index(db)
+    course_of = {a.id: (idx.get(a.item.module_version.module_id) or (None,))[0] for a in acks}
+    return templates.TemplateResponse(request, "admin/records.html", {
+        "user": user, "acks": acks, "completions": completions, "course_of": course_of})
+
+
+@router.get("/courses/{cc_id}/certificate.pdf")
+def admin_course_certificate(cc_id: int, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
+    cc = db.get(CourseCompletion, cc_id) or _404()
+    return Response(build_course_certificate(cc), media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="{cc.certificate_no}.pdf"'})
 
 
 @router.post("/records/{ack_id}/signoff")
@@ -250,12 +256,16 @@ def admin_certificate(ack_id: int, user: AdminUser = Depends(require_admin), db:
 def records_csv(user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["certificate_no", "employee_id", "name", "role", "module", "module_version", "source_doc",
+    idx = courses.lesson_index(db)
+    w.writerow(["certificate_no", "employee_id", "name", "role", "course", "lesson_no", "lesson", "lesson_version",
+                "source_doc",
                 "language", "score_pct", "pass_mark", "attempt_no", "acknowledged_at_utc", "typed_name",
                 "supervisor", "supervisor_at_utc"])
     for a in db.scalars(select(Acknowledgment).order_by(Acknowledgment.at)):
         mv, t = a.item.module_version, a.item.assignment.trainee
-        w.writerow([a.certificate_no, t.employee_id, t.name, t.role, mv.title, mv.version, mv.source_doc,
+        c = idx.get(mv.module_id)
+        w.writerow([a.certificate_no, t.employee_id, t.name, t.role, c[0].title if c else "", c[1] if c else "",
+                    mv.title, mv.version, mv.source_doc,
                     a.attempt.lang, a.attempt.score_pct, mv.pass_mark, a.attempt.attempt_no,
                     a.at.isoformat(), a.typed_name, a.supervisor_name or "",
                     a.supervisor_at.isoformat() if a.supervisor_at else ""])

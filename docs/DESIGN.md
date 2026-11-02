@@ -14,6 +14,7 @@ Caddy (HTTPS, Let's Encrypt) in front. All three run in Docker Compose on the VP
 |---|---|---|
 | WhatsApp | `wa.me` click-to-chat from the admin's personal WhatsApp | No Business API. Automating a personal account (whatsapp-web.js, Baileys) breaks WhatsApp's terms and risks a ban. |
 | Trainee identity | Unguessable per-person link (`token_urlsafe(24)`) + Employee ID check, 5 tries max | There's no OTP channel without the Business API. Recorded IP and user agent add supporting evidence. |
+| Courses | A course (e.g. Plant Technology, later Safety, machines) lists its lessons in order in `content/courses/<slug>/course.yaml`. Assign a whole course or single lessons. Within one link, a course's lessons unlock in order. Each lesson keeps its own record and certificate; when every lesson (current version) of a course is passed and acknowledged, an insert-only CourseCompletion with its own certificate (CRS-…) lists the lesson certificates. In code a lesson is still called a `Module`. | Structured learning; one certificate per course for the training file |
 | Video language | Chosen by the trainee after the Employee ID check (once per visit, remembered for the next), changeable on every page; falls back to English with a notice when a module has no video in that language yet. Each change is audit-logged. Admins don't set it. | Trainees know their own language best |
 | Watch requirement | None (80% rule dropped). Play/ended events are logged as evidence. The quiz unlocks once the video page is opened. | Your decision |
 | Quiz | Random N from bank, fixed per attempt (refresh does not re-roll), pass mark %, max attempts. Answers stored. | Assessment evidence |
@@ -26,7 +27,8 @@ Caddy (HTTPS, Let's Encrypt) in front. All three run in Docker Compose on the VP
 ## Data model
 `Trainee` → `Assignment` (one link, one due date) → `AssignmentItem` (one per module version; status pending/watched/passed/failed)
 → `ViewEvent`*, `QuizAttempt`*, `Acknowledgment` (certificate no., typed name, supervisor sign-off).
-`Module` → `ModuleVersion` (frozen snapshot of quiz + acknowledgment text) → `Video` (per language).
+`Course` → `CourseLesson` (ordered) → `Module` (= lesson) → `ModuleVersion` (frozen snapshot of quiz + acknowledgment text) → `Video` (per language).
+`CourseCompletion`: insert-only, snapshot of the lesson evidence.
 `AuditLog`: append-only, `hash = sha256(prev_hash + entry)`.
 
 ## ISO 9001 / 22000 evidence produced per completion

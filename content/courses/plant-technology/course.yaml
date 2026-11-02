@@ -1,0 +1,9 @@
+slug: plant-technology
+title: "Plant Technology"
+summary: "How a feed mill works: raw materials, plant configurations, the six main processes and the secondary services."
+position: 10          # courses are listed in this order (lower first)
+lessons:              # lesson order; each entry is a folder in content/modules/
+  - pt-01-raw-materials
+  - pt-02-plant-configurations
+  - pt-03-main-processes
+  - pt-04-secondary-services

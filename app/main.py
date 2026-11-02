@@ -19,6 +19,11 @@ def create_app() -> FastAPI:
                        https_only=settings.base_url.startswith("https"))
     app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
     app.include_router(trainee.router)
+
+    @app.exception_handler(trainee.LessonLocked)
+    def lesson_locked(request, exc: trainee.LessonLocked):
+        from urllib.parse import quote
+        return RedirectResponse(f"/t/{exc.token}?notice=" + quote(f"Finish “{exc.needed}” first."), status_code=303)
     app.include_router(admin.router)
 
     @app.get("/")

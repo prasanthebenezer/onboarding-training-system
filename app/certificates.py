@@ -67,3 +67,49 @@ def build_certificate(ack: Acknowledgment) -> bytes:
         "in a hash-chained audit log. Client IP at acknowledgment: " + (ack.ip or "-")),
         new_x="LMARGIN", new_y="NEXT")
     return bytes(pdf.output())
+
+
+def build_course_certificate(cc) -> bytes:
+    """Course completion: lists the lesson certificates that together complete the course."""
+    from datetime import datetime
+    t = cc.trainee
+    pdf = FPDF(format="A4")
+    pdf.set_auto_page_break(True, 15)
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.cell(0, 12, _t(settings.org_name), align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 14)
+    pdf.cell(0, 9, "Course Completion Certificate", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 7, _t(f"Certificate No: {cc.certificate_no}"), align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "", 12)
+    pdf.multi_cell(0, 7, _t(f"This certifies that {t.name} (Employee ID {t.employee_id}, {t.role}) has completed "
+                            f"every lesson of the course \"{cc.course_title}\", passing each assessment and signing "
+                            f"its acknowledgment."), align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 7, _t(f"Completed: {_fmt(cc.completed_at)}"), align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+    widths = (12, 78, 14, 16, 30, 40)
+    heads = ("#", "Lesson", "Ver.", "Score", "Acknowledged", "Lesson certificate")
+    pdf.set_font("Helvetica", "B", 9)
+    for w, h in zip(widths, heads):
+        pdf.cell(w, 8, h, border=1)
+    pdf.ln()
+    pdf.set_font("Helvetica", "", 9)
+    for e in sorted(cc.lessons, key=lambda e: e["position"]):
+        at = datetime.fromisoformat(e["acknowledged_at"]).strftime("%d/%m/%Y")
+        vals = (str(e["position"]), e["title"], e["version"], f"{e['score_pct']}%", at, e["certificate_no"])
+        for w, v in zip(widths, vals):
+            txt = _t(v)
+            while pdf.get_string_width(txt) > w - 2 and len(txt) > 4:
+                txt = txt[:-2]
+            pdf.cell(w, 8, txt if txt == _t(v) else txt[:-1] + "...", border=1)
+        pdf.ln()
+    pdf.ln(6)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.multi_cell(0, 5, _t("Each lesson has its own training record (quiz answers, acknowledgment, supervisor "
+                            "sign-off) under the lesson certificate number above. All events are kept in a "
+                            "hash-chained audit log."), new_x="LMARGIN", new_y="NEXT")
+    return bytes(pdf.output())

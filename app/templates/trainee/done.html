@@ -1,8 +1,17 @@
 {% extends "base.html" %}{% block title %}Completed{% endblock %}
 {% block content %}
-<div class="card"><h1>✔ Training completed</h1>
+<div class="card"><h1>✔ Lesson completed</h1>
 <p>{{ item.module_version.title }} (v{{ item.module_version.version }})</p>
 <p>Certificate No: <b>{{ item.acknowledgment.certificate_no }}</b></p>
-<a class="btn" href="/t/{{ token }}/m/{{ item.id }}/certificate.pdf" target="_blank">Download certificate (PDF)</a>
-<a class="btn secondary" href="/t/{{ token }}">Back to my training</a></div>
+<a class="btn secondary" href="/t/{{ token }}/m/{{ item.id }}/certificate.pdf" target="_blank">Lesson certificate (PDF)</a>
+</div>
+{% if group and group.completion %}
+<div class="card"><h2>🎓 Course completed: {{ group.course.title }}</h2>
+<p>You have completed every lesson of this course.</p>
+<a class="btn" href="/t/{{ token }}/course/{{ group.completion.id }}/certificate.pdf" target="_blank">Course certificate (PDF)</a></div>
+{% elif next_item %}
+<div class="card"><p>Next: <b>{{ next_item.module_version.title }}</b></p>
+<a class="btn" href="/t/{{ token }}/m/{{ next_item.id }}">Start next lesson ▶</a></div>
+{% endif %}
+<p><a class="btn secondary" href="/t/{{ token }}">Back to my training</a></p>
 {% endblock %}

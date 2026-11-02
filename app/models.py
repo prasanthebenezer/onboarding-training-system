@@ -160,3 +160,48 @@ class AuditLog(Base):
     payload: Mapped[dict] = mapped_column(JSON)
     prev_hash: Mapped[str] = mapped_column(String(64))
     hash: Mapped[str] = mapped_column(String(64), unique=True)
+
+
+# ---------------------------------------------------------------------------
+# Courses group lessons. In code a lesson is a `Module` (one quiz + one video
+# per language); on screen it is called a "Lesson". Courses are defined in
+# content/courses/<slug>/course.yaml and are new tables only, so existing
+# databases need no migration (create_all adds them).
+# ---------------------------------------------------------------------------
+class Course(Base):
+    __tablename__ = "courses"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    slug: Mapped[str] = mapped_column(String(100), unique=True)
+    title: Mapped[str] = mapped_column(String(200))
+    summary: Mapped[str] = mapped_column(Text, default="")
+    position: Mapped[int] = mapped_column(Integer, default=100)  # order on screen
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    lessons: Mapped[list["CourseLesson"]] = relationship(
+        back_populates="course", order_by="CourseLesson.position", cascade="all, delete-orphan")
+
+
+class CourseLesson(Base):
+    __tablename__ = "course_lessons"
+    __table_args__ = (UniqueConstraint("course_id", "module_id"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"), index=True)
+    position: Mapped[int] = mapped_column(Integer)  # 1-based lesson number
+    course: Mapped[Course] = relationship(back_populates="lessons")
+    module: Mapped[Module] = relationship()
+
+
+class CourseCompletion(Base):
+    """Insert-only: written when a trainee has passed and acknowledged every lesson
+    (current version) of a course. `lessons` is a snapshot of the evidence."""
+    __tablename__ = "course_completions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    trainee_id: Mapped[int] = mapped_column(ForeignKey("trainees.id"), index=True)
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    course_title: Mapped[str] = mapped_column(String(200))
+    lessons: Mapped[list] = mapped_column(JSON)  # [{position, title, version, module_version_id, certificate_no, ...}]
+    lessons_key: Mapped[str] = mapped_column(String(400))  # sorted module_version_ids, to avoid duplicates
+    certificate_no: Mapped[str] = mapped_column(String(40), unique=True)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    trainee: Mapped[Trainee] = relationship()
+    course: Mapped[Course] = relationship()
