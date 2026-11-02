@@ -13,6 +13,7 @@
   try { closed = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) {}
   function set(g, isClosed) {
     g.classList.toggle('collapsed', isClosed);
+    g.querySelector('.collapse-body').hidden = isClosed;  // works even with a stale stylesheet
     var b = g.querySelector('.collapse-toggle');
     b.setAttribute('aria-expanded', String(!isClosed));
     b.textContent = isClosed ? '\u25B8' : '\u25BE';
