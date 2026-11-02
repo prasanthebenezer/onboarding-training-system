@@ -8,7 +8,7 @@
  <div class="card"><div class="muted">Failed (attempts used)</div><div class="stat">{{ counts.failed }}</div></div>
  <div class="card"><div class="muted">Overdue</div><div class="stat" style="color:var(--bad)">{{ overdue|length }}</div></div>
 </div>
-<div class="card table-wrap"><h2>Assigned training</h2>
+<div class="card table-wrap"><h2>Assigned training <a class="btn secondary" href="/admin/assignments.csv">Export CSV</a></h2>
 <table><tr><th>Trainee</th><th>Module</th><th>Status</th><th>Due</th><th>Sent</th><th>Completed</th></tr>
 {% for i in items %}<tr>
 <td>{{ i.assignment.trainee.name }}<br><span class="muted">{{ i.assignment.trainee.employee_id }}</span></td>

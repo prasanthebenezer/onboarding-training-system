@@ -324,6 +324,7 @@ def test_delete_lesson_record_and_export(client):
     token, answers = _setup(client)
     client.post(f"/t/{token}", data={"employee_id": "E100"})
     _pass_lesson(client, token, 1, answers)
+    assert 'href="/admin/assignments.csv"' in client.get("/admin", auth=ADMIN).text
     csv_text = client.get("/admin/assignments.csv", auth=ADMIN).text
     head, row = csv_text.splitlines()[:2]
     assert head.startswith("link_id,employee_id") and ",E100,Test Tech," in row and ",passed,1,3,100," in row
