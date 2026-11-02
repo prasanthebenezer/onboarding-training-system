@@ -10,8 +10,13 @@
 {% for x in report.unchanged %}<div class="muted">Unchanged: {{ x }}</div>{% endfor %}
 {% for x in report.errors %}<div class="error">{{ x }}</div>{% endfor %}</div>{% endif %}
 </div>
+{% if catalog %}<div class="collapse-bar"><button type="button" class="btn secondary" data-collapse-all="expand">Expand all</button>
+<button type="button" class="btn secondary" data-collapse-all="collapse">Collapse all</button></div>
+{% endif %}
 {% for course, versions in catalog %}
-<h2>{% if course %}Course: {{ course.title }} <span class="muted">· {{ versions|length }} lessons</span>{% else %}Lessons not in a course{% endif %}</h2>
+<section data-collapse="{{ 'c' ~ course.id if course else 'none' }}">
+<h2 class="collapse-head"><button type="button" class="collapse-toggle" aria-label="Show or hide lessons" aria-expanded="true">▾</button> {% if course %}Course: {{ course.title }} <span class="muted">· {{ versions|length }} lessons</span>{% else %}Lessons not in a course{% endif %}</h2>
+<div class="collapse-body">
 {% for mv in versions %}
 <div class="card"><h3 style="margin-top:0">{% if course %}Lesson {{ loop.index }} · {% endif %}{{ mv.title }} <span class="muted">· {{ mv.module.slug }}</span></h3>
 <p>Version <b>v{{ mv.version }}</b> · {{ mv.source_doc }} · {{ mv.questions|length }} questions in bank, {{ mv.questions_per_attempt }} per attempt, pass {{ mv.pass_mark }}%, max {{ mv.max_attempts }} attempts</p>
@@ -22,5 +27,6 @@
 <td><form method="post" action="/admin/modules/{{ mv.id }}/video" enctype="multipart/form-data"><input type="hidden" name="lang" value="{{ code }}"><input type="file" name="file" accept="video/mp4" required> <button>Upload</button></form></td></tr>{% endfor %}
 </table></div></div>
 {% endfor %}
+</div></section>
 {% else %}<div class="card muted">No content imported yet.</div>{% endfor %}
 {% endblock %}

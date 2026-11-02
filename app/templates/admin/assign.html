@@ -4,12 +4,17 @@
 <form method="post" action="/admin/assign">
 <div class="card"><h2>1. Courses and lessons</h2>
 <p class="muted">Tick a course to assign all its lessons, or tick single lessons. Lessons of a course unlock in order.</p>
+{% if catalog %}<div class="collapse-bar"><button type="button" class="btn secondary" data-collapse-all="expand">Expand all</button>
+<button type="button" class="btn secondary" data-collapse-all="collapse">Collapse all</button></div>
+{% endif %}
 {% for course, versions in catalog %}
-<fieldset class="course-pick">
- {% if course %}<legend><label><input type="checkbox" class="course-all" data-course="c{{ course.id }}"> <b>{{ course.title }}</b> <span class="muted">· all {{ versions|length }} lessons</span></label></legend>
- {% else %}<legend><b>Lessons not in a course</b></legend>{% endif %}
+<fieldset class="course-pick" data-collapse="{{ 'c' ~ course.id if course else 'none' }}">
+ {% if course %}<legend><button type="button" class="collapse-toggle" aria-label="Show or hide lessons" aria-expanded="true">▾</button> <label><input type="checkbox" class="course-all" data-course="c{{ course.id }}"> <b>{{ course.title }}</b> <span class="muted">· all {{ versions|length }} lessons</span></label></legend>
+ {% else %}<legend><button type="button" class="collapse-toggle" aria-label="Show or hide lessons" aria-expanded="true">▾</button> <b>Lessons not in a course</b></legend>{% endif %}
+ <div class="collapse-body">
  {% for mv in versions %}<label style="display:block;margin:6px 0 6px 26px"><input type="checkbox" name="module_version_ids" value="{{ mv.id }}" data-course="{{ 'c' ~ course.id if course else '' }}">
  {% if course %}Lesson {{ loop.index }} · {% endif %}{{ mv.title }} <span class="muted">v{{ mv.version }} · videos: {{ mv.videos|map(attribute="lang")|join(", ") or "none yet" }}</span></label>{% endfor %}
+ </div>
 </fieldset>
 {% else %}<p class="muted">Import content first.</p>{% endfor %}</div>
 <div class="card"><h2>2. Trainees</h2>

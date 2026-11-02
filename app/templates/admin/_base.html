@@ -3,3 +3,33 @@
 <a href="/admin">Dashboard</a><a href="/admin/trainees">Trainees</a><a href="/admin/modules">Courses &amp; lessons</a>
 <a href="/admin/assign">Assign</a><a href="/admin/assignments">Links</a><a href="/admin/records">Records</a><a href="/admin/audit">Audit</a>
 <span style="float:right">{{ user.display_name }}</span>{% endblock %}
+{% block scripts %}<script>
+/* Collapsible course groups: [data-collapse] blocks with a .collapse-toggle button and a .collapse-body.
+   The open/closed state is remembered per page in this browser. */
+(function () {
+  var groups = document.querySelectorAll('[data-collapse]');
+  if (!groups.length) return;
+  var key = 'collapsed:' + location.pathname, closed = {};
+  try { closed = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) {}
+  function set(g, isClosed) {
+    g.classList.toggle('collapsed', isClosed);
+    var b = g.querySelector('.collapse-toggle');
+    b.setAttribute('aria-expanded', String(!isClosed));
+    b.textContent = isClosed ? '\u25B8' : '\u25BE';
+    closed[g.dataset.collapse] = isClosed || undefined;
+  }
+  function save() { try { localStorage.setItem(key, JSON.stringify(closed)); } catch (e) {} }
+  groups.forEach(function (g) {
+    set(g, !!closed[g.dataset.collapse]);
+    g.querySelector('.collapse-toggle').addEventListener('click', function () {
+      set(g, !g.classList.contains('collapsed')); save();
+    });
+  });
+  document.querySelectorAll('[data-collapse-all]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var c = b.dataset.collapseAll === 'collapse';
+      groups.forEach(function (g) { set(g, c); }); save();
+    });
+  });
+})();
+</script>{% endblock %}

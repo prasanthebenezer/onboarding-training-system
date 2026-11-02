@@ -30,3 +30,8 @@ video{width:100%;max-height:70vh;background:#000;border-radius:8px}
 .course-head td{background:#eef3f8;font-weight:600}
 fieldset.course-pick{border:1px solid var(--line);border-radius:8px;margin:10px 0;padding:6px 12px 10px}
 fieldset.course-pick legend{padding:0 6px}
+.collapse-bar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.collapse-bar .btn{padding:6px 12px;font-size:.9rem}
+.collapse-head{display:flex;align-items:baseline;gap:6px}
+.collapse-toggle{background:none;color:var(--brand);padding:0 6px;font-size:1.1rem;line-height:1;border-radius:4px}
+.collapse-toggle:hover,.collapse-toggle:focus-visible{background:#e7edf3}
+[data-collapse].collapsed .collapse-body{display:none}
