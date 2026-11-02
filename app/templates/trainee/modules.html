@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block title %}My training{% endblock %}
 {% block content %}
 <div class="topline"><h1>My training · {{ a.trainee.name }}</h1>
-<a class="btn secondary" href="/t/{{ a.token }}/language">🌐 {{ languages[lang].native }} · Change language</a></div>
+{% if can_change %}<a class="btn secondary" href="/t/{{ a.token }}/language">🌐 {{ languages[lang].native }} · Change language</a>{% endif %}</div>
 {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
 {% if a.due_date %}<p class="muted">Please complete by {{ a.due_date|dt("%d/%m/%Y") }}</p>{% endif %}
 {% set labels = {"pending":"Not started","watched":"Quiz pending","passed":"Completed","failed":"Contact supervisor"} %}

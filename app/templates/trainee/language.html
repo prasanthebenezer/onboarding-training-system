@@ -2,12 +2,15 @@
 {% block content %}
 <div class="card">
 <h1>Choose your language</h1>
-<p class="muted" style="margin-top:-6px">اختر لغتك · अपनी भाषा चुनें · നിങ്ങളുടെ ഭാഷ തിരഞ്ഞെടുക്കുക</p>
+{% set prompts = {"ar": "اختر لغتك", "hi": "अपनी भाषा चुनें", "ml": "നിങ്ങളുടെ ഭാഷ തിരഞ്ഞെടുക്കുക"} %}
+{% set shown = [] %}{% for c in languages if c in prompts %}{% set _ = shown.append(prompts[c]) %}{% endfor %}
+{% if shown %}<p class="muted" style="margin-top:-6px">{{ shown|join(" · ") }}</p>{% endif %}
 <form method="post" action="/t/{{ a.token }}/language" class="langpick">
 {% for code, l in languages.items() %}
 <button name="lang" value="{{ code }}" class="btn {{ '' if code == current else 'secondary' }}" dir="{{ l.dir }}" lang="{{ code }}">
 <span class="native">{{ l.native }}</span>{% if l.native != l.name %}<span class="en">{{ l.name }}</span>{% endif %}</button>
 {% endfor %}
 </form>
-<p class="muted">Training videos and quizzes will open in this language. You can change it at any time.</p>
+<p class="muted">Training videos and quizzes will open in this language. You can change it at any time.
+{% if more_coming %}More languages will appear here when their videos are ready.{% endif %}</p>
 </div>{% endblock %}

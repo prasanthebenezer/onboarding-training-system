@@ -96,35 +96,76 @@ def test_tamper_detected(client):
     assert "Chain broken at entry #2" in client.get("/admin/audit", auth=ADMIN).text
 
 
+def _video(client, mv_id, lang):
+    r = client.post(f"/admin/modules/{mv_id}/video", auth=ADMIN, data={"lang": lang},
+                    files={"file": ("v.mp4", b"\x00\x00\x00\x18ftypmp42" + b"0" * 50, "video/mp4")})
+    assert r.status_code == 200
+
+
 def test_trainee_chooses_language(client):
-    token, _ = _setup(client)  # module 1 has only an Arabic video uploaded
+    token, _ = _setup(client)  # module 1 has an Arabic video
+    _video(client, 1, "en")    # ... and an English one
     client.post(f"/t/{token}", data={"employee_id": "E100"})
 
     page = client.get(f"/t/{token}").text  # first visit: language screen before the module list
-    assert "Choose your language" in page and "മലയാളം" in page
+    assert "Choose your language" in page and "العربية" in page and 'value="en"' in page
+    assert "മലയാളം" not in page and 'value="hi"' not in page  # no video in these languages: not offered
+    assert "More languages will appear here" in page
     assert client.post(f"/t/{token}/language", data={"lang": "xx"}).status_code == 400
-
     r = client.post(f"/t/{token}/language", data={"lang": "ml"})
-    assert "My training" in r.text and "മലയാളം" in r.text
+    assert r.status_code == 400 and "not available" in r.text
+
+    r = client.post(f"/t/{token}/language", data={"lang": "en"})
+    assert "My training" in r.text and "Change language" in r.text
     from app.db import SessionLocal
     from app.models import AuditLog, Trainee
     with SessionLocal() as db:
-        assert db.query(Trainee).filter_by(employee_id="E100").one().preferred_lang == "ml"
-        assert db.query(AuditLog).filter_by(action="language_chosen").count() == 1
+        assert db.query(Trainee).filter_by(employee_id="E100").one().preferred_lang == "en"
 
-    # no Malayalam video yet: falls back and says so
-    w = client.get(f"/t/{token}/m/1").text
-    assert "not available in മലയാളം yet" in w and "/video/1/ar" in w
-
-    # chooses Arabic: plays Arabic, no notice; quiz link carries the language
+    # chooses Arabic: logged; plays Arabic, no notice; quiz link carries the language
     client.post(f"/t/{token}/language", data={"lang": "ar"})
+    with SessionLocal() as db:
+        assert db.query(AuditLog).filter_by(action="language_chosen").one().payload == {"from": "en", "to": "ar"}
     w = client.get(f"/t/{token}/m/1").text
-    assert "not available" not in w and "/video/1/ar" in w and "quiz?lang=ar" in w
+    assert "not available" not in w and "/video/1/ar" in w and "quiz?lang=ar" in w and "Change language" in w
 
     # the choice is remembered on the next visit (new session)
     client.cookies.clear()
     client.post(f"/t/{token}", data={"employee_id": "E100"})
     assert 'value="ar" class="btn "' in client.get(f"/t/{token}").text
+
+
+def test_only_one_language_skips_the_choice(client):
+    token, _ = _setup(client)  # only an Arabic video
+    client.post(f"/t/{token}", data={"employee_id": "E100"})
+    home = client.get(f"/t/{token}").text
+    assert "My training" in home and "Choose your language" not in home and "Change language" not in home
+    assert "My training" in client.get(f"/t/{token}/language").text  # nothing to choose: back to the list
+    w = client.get(f"/t/{token}/m/1").text
+    assert "/video/1/ar" in w and "Change language" not in w and "not available" not in w
+    assert client.post(f"/t/{token}/language", data={"lang": "en"}).status_code == 400
+
+
+def test_languages_offered_cover_every_lesson(client):
+    seed()
+    for lang in ("en", "ar"):
+        _video(client, 1, lang)
+    _video(client, 2, "en")
+    client.post("/admin/trainees", auth=ADMIN, data={"employee_id": "E5", "name": "Two Lessons",
+                                                     "phone": "+966500000005", "role": "Technician"})
+    r = client.post("/admin/assign", auth=ADMIN, data={"trainee_ids": ["1"], "module_version_ids": ["1", "2"]})
+    token = re.search(r"/t/([A-Za-z0-9_-]+)", unquote(re.search(r'href="(https://wa\.me/[^"]+)"', r.text).group(1))).group(1)
+    client.post(f"/t/{token}", data={"employee_id": "E5"})
+    # Arabic exists for lesson 1 only, so it is not offered; English covers both lessons
+    home = client.get(f"/t/{token}").text
+    assert "Choose your language" not in home and "Change language" not in home
+
+    from app.routes.trainee import available_langs
+    from app.db import SessionLocal
+    from app.models import Assignment
+    _video(client, 3, "ar")  # not in this link: makes no difference
+    with SessionLocal() as db:
+        assert available_langs(db.query(Assignment).one()) == ["en"]
 
 
 def test_admin_has_no_language_field(client):

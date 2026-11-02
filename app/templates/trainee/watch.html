@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block title %}{{ item.module_version.title }}{% endblock %}
 {% block content %}
-<div class="topline"><a href="/t/{{ token }}">← My training</a><a href="/t/{{ token }}/language">🌐 Change language</a></div>
+<div class="topline"><a href="/t/{{ token }}">← My training</a>{% if can_change %}<a href="/t/{{ token }}/language">🌐 Change language</a>{% endif %}</div>
 <h1>{{ item.module_version.title }}</h1>
 {% if not videos %}<div class="card">The video for this module is not available yet. Please check again later.</div>
 {% else %}

@@ -65,6 +65,16 @@ def _videos(item: AssignmentItem) -> dict[str, Video]:
     return {v.lang: v for v in item.module_version.videos}
 
 
+def available_langs(a: Assignment) -> list[str]:
+    """Languages the trainee may choose: those with a video for every lesson in the link. If no
+    language covers them all, those with a video for at least one lesson. Never empty."""
+    per_lesson = [{v.lang for v in item.module_version.videos} for item in a.items]
+    langs = set.intersection(*per_lesson) if per_lesson else set()
+    if not langs and per_lesson:
+        langs = set.union(*per_lesson)
+    return [code for code in LANGUAGES if code in langs] or ["en"]
+
+
 def _questions_by_id(item: AssignmentItem) -> dict:
     return {q["id"]: q for q in item.module_version.questions}
 
@@ -82,17 +92,21 @@ def landing(token: str, request: Request, db: Session = Depends(get_db)):
                                           {"title": "Link expired", "msg": "Ask your supervisor for a new link."})
     if not _verified(request, a):
         return templates.TemplateResponse(request, "trainee/verify.html", {"a": a, "error": None})
-    if request.session.get("lang") not in LANGUAGES:
-        return _language_page(request, a)
+    avail = available_langs(a)
+    if request.session.get("lang") not in avail:
+        if len(avail) > 1:
+            return _language_page(request, a, avail)
+        request.session["lang"] = avail[0]  # only one language: nothing to choose
     return templates.TemplateResponse(request, "trainee/modules.html", {
         "a": a, "languages": LANGUAGES, "lang": request.session["lang"], "groups": courses.grouped(db, a),
-        "notice": request.query_params.get("notice")})
+        "can_change": len(avail) > 1, "notice": request.query_params.get("notice")})
 
 
-def _language_page(request: Request, a: Assignment):
+def _language_page(request: Request, a: Assignment, avail: list[str]):
     current = request.session.get("lang") or a.trainee.preferred_lang
     return templates.TemplateResponse(request, "trainee/language.html", {
-        "a": a, "languages": LANGUAGES, "current": current})
+        "a": a, "languages": {c: LANGUAGES[c] for c in avail}, "current": current,
+        "more_coming": len(avail) < len(LANGUAGES)})
 
 
 @router.get("/{token}/language")
@@ -100,7 +114,10 @@ def language_form(token: str, request: Request, db: Session = Depends(get_db)):
     a = _assignment(db, token)
     if not _verified(request, a):
         return RedirectResponse(f"/t/{token}", status_code=303)
-    return _language_page(request, a)
+    avail = available_langs(a)
+    if len(avail) < 2:
+        return RedirectResponse(f"/t/{token}", status_code=303)
+    return _language_page(request, a, avail)
 
 
 @router.post("/{token}/language")
@@ -109,8 +126,8 @@ def choose_language(token: str, request: Request, lang: str = Form(...), db: Ses
     a = _assignment(db, token)
     if not _verified(request, a):
         return RedirectResponse(f"/t/{token}", status_code=303)
-    if lang not in LANGUAGES:
-        raise HTTPException(400, "Unknown language")
+    if lang not in available_langs(a):
+        raise HTTPException(400, "This language is not available for your training yet.")
     request.session["lang"] = lang
     trainee = a.trainee
     if trainee.preferred_lang != lang:
@@ -154,7 +171,8 @@ def watch(token: str, item_id: int, request: Request, lang: str | None = None, d
         db.commit()
     return templates.TemplateResponse(request, "trainee/watch.html", {
         "token": token, "item": item, "lang": lang, "videos": vids, "languages": LANGUAGES,
-        "chosen": chosen, "missing_chosen": bool(vids) and chosen not in vids})
+        "chosen": chosen, "missing_chosen": bool(vids) and chosen not in vids,
+        "can_change": len(available_langs(item.assignment)) > 1})
 
 
 class EventIn(BaseModel):
