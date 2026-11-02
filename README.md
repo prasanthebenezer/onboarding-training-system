@@ -14,17 +14,17 @@ Trial deployment: Hostinger VPS at `https://training.prasanthebenezer.com`.
 ```bash
 pip install -r requirements-dev.txt
 ADMIN_USERS="admin:admin:Your Name" uvicorn app.main:app --reload
-# open http://localhost:8000/admin → Modules → "Import content from repository"
+# open http://localhost:8000/admin → Courses & lessons → "+ New lesson"
 pytest -q
 ```
 
 ## How it works
 | Step | Who | Where |
 |---|---|---|
-| Draft script + quiz from SOP/manual | Claude + SME review | `content/modules/<slug>/` |
+| Draft script + quiz from SOP/manual | Claude + SME review | `content/modules/<slug>/` (script), quiz typed into the lesson editor |
 | Build video visuals | Claude Motion artifact | see `docs/VIDEO_PIPELINE.md` |
 | Record voiceover per language | Admin (Voice Studio) | merged with ffmpeg |
-| Import content, upload MP4s | Admin | `/admin/modules` |
+| Create/revise courses and lessons, upload MP4s | Admin | `/admin/modules` |
 | Add trainees (form or CSV) | Admin | `/admin/trainees` |
 | Assign + send links | Admin | `/admin/assign` → `/admin/assignments` |
 | Watch → quiz → acknowledge | Trainee (phone) | personal link `/t/<token>` |
@@ -35,21 +35,20 @@ pytest -q
 - `docs/VIDEO_PIPELINE.md`: SOP → script → Motion → voiceover → MP4
 - `docs/DEPLOY.md`: Hostinger VPS deployment, backups
 
-## Adding a course (e.g. Safety)
-1. Add each lesson as `content/modules/<lesson-slug>/module.yaml` (quiz, acknowledgment) and `script.en.md`.
-2. Add `content/courses/<course-slug>/course.yaml`:
-   ```yaml
-   slug: safety
-   title: "Safety"
-   summary: "..."
-   position: 20          # courses are listed in this order
-   lessons:              # lesson order
-     - safety-01-loto
-     - safety-02-confined-space
-   ```
-3. Commit and push, `git pull` on the VPS, then Admin → **Courses & lessons** → **Import content from repository**.
+## Adding or changing courses and lessons
+Everything is done in the admin pages under **Courses & lessons**; the database holds the content.
+- **+ New lesson:** title, summary, source document, pass mark, questions per attempt, attempts, acknowledgment
+  text and the question bank (English required; Arabic, Hindi, Malayalam optional per question).
+- **+ New course:** title, list order, and its lessons in order. **Edit course** renames, reorders, adds or removes lessons.
+- **Revise** (on a lesson): publishes the next version (v1 → v2). Published versions never change, so trainees'
+  records keep pointing at the version they took. Links already sent keep their version; new assignments get the
+  new one. Tick *Copy the current videos* if only the text or quiz changed.
+- Every publish and course change is written to the audit log.
 
 ## Content in this repo
+The YAML files under `content/` are the original sources of the Plant Technology course. They were imported
+once and are no longer read by the app (the tests still use them as sample data); edit content in the admin pages.
+
 Course **Plant Technology** (`content/courses/plant-technology/`), from the Plant Technology Training Manual (SMP-MAINT-TRAIN-002 v1), in 4 lessons:
 
 | Lesson | Manual section | Narration (EN) | Quiz bank |

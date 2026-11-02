@@ -2,6 +2,8 @@
 import csv
 import hashlib
 import io
+import json
+from urllib.parse import quote
 from datetime import datetime, time, timedelta, timezone
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -9,11 +11,11 @@ from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import audit, content_loader, courses
+from .. import audit, authoring, courses
 from ..certificates import build_certificate, build_course_certificate
 from ..config import LANGUAGES, AdminUser, settings
 from ..db import get_db
-from ..models import (Acknowledgment, Assignment, AssignmentItem, AuditLog, CourseCompletion, Module,
+from ..models import (Acknowledgment, Assignment, AssignmentItem, AuditLog, Course, CourseCompletion, Module,
                       ModuleVersion, Trainee, Video, utcnow)
 from ..security import new_token, require_admin
 from ..templating import templates
@@ -101,16 +103,110 @@ def _404():
 # ---------- modules & videos ----------
 @router.get("/modules")
 def modules(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
+    catalog = courses.assign_catalog(db)
+    shown = {c.id for c, _ in catalog if c}
+    empty = [(c, []) for c in db.scalars(select(Course).where(Course.active).order_by(Course.position, Course.title))
+             if c.id not in shown]  # new courses with no lessons yet still need an Edit button
+    catalog = sorted([g for g in catalog if g[0]] + empty, key=lambda g: (g[0].position, g[0].title)) + \
+        [g for g in catalog if not g[0]]
     return templates.TemplateResponse(request, "admin/modules.html", {
-        "user": user, "catalog": courses.assign_catalog(db), "languages": LANGUAGES,
-        "msg": request.query_params.get("msg")})
+        "user": user, "catalog": catalog, "languages": LANGUAGES, "msg": request.query_params.get("msg")})
 
 
-@router.post("/modules/sync")
-def sync_modules(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
-    report = content_loader.sync(db, user.username)
-    return templates.TemplateResponse(request, "admin/modules.html", {
-        "user": user, "catalog": courses.assign_catalog(db), "languages": LANGUAGES, "report": report})
+def _lesson_editor(request: Request, user: AdminUser, db: Session, *, module: Module | None, data: dict,
+                   course_id: int | None = None, copy_videos: bool = True, errors: list[str] | None = None,
+                   questions: list | None = None):
+    current = db.get(ModuleVersion, module.current_version_id) if module and module.current_version_id else None
+    return templates.TemplateResponse(request, "admin/lesson_edit.html", {
+        "user": user, "module": module, "current": current, "data": data,
+        "questions": questions if questions is not None else authoring.editor_questions(data.get("questions") or []),
+        "languages": LANGUAGES, "course": db.get(Course, course_id) if course_id else None,
+        "copy_videos": copy_videos, "errors": errors or [],
+        "next_version": authoring.next_version(db, module) if module else "1",
+    }, status_code=400 if errors else 200)
+
+
+@router.get("/lessons/new")
+def new_lesson(request: Request, course_id: int | None = None, user: AdminUser = Depends(require_admin),
+               db: Session = Depends(get_db)):
+    data = {"title": "", "summary": "", "source_doc": "", "pass_mark": 80, "questions_per_attempt": 5,
+            "max_attempts": 3, "acknowledgment": authoring.DEFAULT_ACK, "questions": []}
+    return _lesson_editor(request, user, db, module=None, data=data, course_id=course_id)
+
+
+@router.get("/lessons/{module_id}/revise")
+def revise_lesson(module_id: int, request: Request, user: AdminUser = Depends(require_admin),
+                  db: Session = Depends(get_db)):
+    module = db.get(Module, module_id) or _404()
+    mv = db.get(ModuleVersion, module.current_version_id) or _404()
+    return _lesson_editor(request, user, db, module=module, data=authoring.lesson_data(mv))
+
+
+@router.post("/lessons/save")
+async def save_lesson(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
+    form = dict(await request.form())
+    module = db.get(Module, int(form["module_id"])) or _404() if form.get("module_id") else None
+    course = db.get(Course, int(form["course_id"])) or _404() if form.get("course_id") and not module else None
+    copy_videos = form.get("copy_videos") == "1"
+    data, errors = authoring.lesson_from_form(form)
+    if not errors:
+        try:
+            mv = authoring.publish_lesson(db, user.username, data, module, copy_videos=copy_videos)
+        except authoring.ContentError as e:
+            errors = e.errors
+    if errors:
+        db.rollback()
+        try:  # show exactly what was typed, including unfinished translations
+            typed = json.loads(form.get("questions_json") or "[]")
+        except json.JSONDecodeError:
+            typed = []
+        return _lesson_editor(request, user, db, module=module, data=data, questions=typed if isinstance(typed, list) else [],
+                              course_id=course.id if course else None, copy_videos=copy_videos, errors=errors)
+    if course is not None:  # new lesson added from a course: append it as the last lesson
+        authoring.save_course(db, user.username, course, {"title": course.title, "summary": course.summary,
+                              "position": course.position},
+                              [cl.module_id for cl in course.lessons] + [mv.module_id])
+    db.commit()
+    where = f" (added to {course.title})" if course else ""
+    return _go("/admin/modules?msg=" + quote(f"Published {mv.title} v{mv.version}{where}"))
+
+
+def _course_editor(request: Request, user: AdminUser, db: Session, *, course: Course | None, form: dict,
+                   lesson_ids: list[int], errors: list[str] | None = None):
+    lessons = []
+    for m in db.scalars(select(Module).where(Module.current_version_id.is_not(None)).order_by(Module.title)):
+        lessons.append({"id": m.id, "title": m.title, "version": db.get(ModuleVersion, m.current_version_id).version})
+    return templates.TemplateResponse(request, "admin/course_edit.html", {
+        "user": user, "course": course, "form": form, "lesson_ids": lesson_ids, "lessons": lessons,
+        "errors": errors or []}, status_code=400 if errors else 200)
+
+
+@router.get("/courses/new")
+def new_course(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
+    return _course_editor(request, user, db, course=None, form={}, lesson_ids=[])
+
+
+@router.get("/courses/{course_id}/edit")
+def edit_course(course_id: int, request: Request, user: AdminUser = Depends(require_admin),
+                db: Session = Depends(get_db)):
+    c = db.get(Course, course_id) or _404()
+    return _course_editor(request, user, db, course=c, lesson_ids=[cl.module_id for cl in c.lessons],
+                          form={"title": c.title, "summary": c.summary, "position": c.position})
+
+
+@router.post("/courses/save")
+async def save_course(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
+    raw = await request.form()
+    form = {k: raw.get(k) for k in ("title", "summary", "position")}
+    course = db.get(Course, int(raw["course_id"])) or _404() if raw.get("course_id") else None
+    lesson_ids = [int(x) for x in raw.getlist("lesson_ids") if x]
+    try:
+        course = authoring.save_course(db, user.username, course, form, lesson_ids)
+    except authoring.ContentError as e:
+        db.rollback()
+        return _course_editor(request, user, db, course=course, form=form, lesson_ids=lesson_ids, errors=e.errors)
+    db.commit()
+    return _go("/admin/modules?msg=" + quote(f"Saved course {course.title}"))
 
 
 @router.post("/modules/{mv_id}/video")

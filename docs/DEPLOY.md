@@ -49,4 +49,4 @@ and copy `backups/` off the server:
 ```
 
 ## First use
-`/admin` → Modules → **Import content from repository** → upload videos → Trainees → Assign.
+`/admin` → Courses & lessons → **+ New lesson** / **+ New course** → upload videos → Trainees → Assign.

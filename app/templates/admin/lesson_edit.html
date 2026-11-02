@@ -1,0 +1,133 @@
+{% extends "admin/_base.html" %}{% block title %}{{ "Revise lesson" if module else "New lesson" }}{% endblock %}
+{% block content %}
+<p><a href="/admin/modules">← Courses &amp; lessons</a></p>
+{% if module %}
+<h1>Revise lesson: {{ module.title }}</h1>
+<p class="notice">Saving publishes <b>version {{ next_version }}</b>{% if current %} (the current version is v{{ current.version }}){% endif %}.
+Links already sent keep the version they were created with; new assignments get v{{ next_version }}.
+Trainees who passed an earlier version can be assigned the new one.</p>
+{% else %}
+<h1>New lesson{% if course %} in {{ course.title }}{% endif %}</h1>
+{% if course %}<p class="muted">It will be added as the last lesson of <b>{{ course.title }}</b>.</p>{% endif %}
+{% endif %}
+{% if errors %}<ul class="errors">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+<form method="post" action="/admin/lessons/save" id="lesson-form">
+{% if module %}<input type="hidden" name="module_id" value="{{ module.id }}">{% endif %}
+{% if course and not module %}<input type="hidden" name="course_id" value="{{ course.id }}">{% endif %}
+<input type="hidden" name="questions_json" id="questions_json">
+<div class="card">
+ <label class="field"><span>Title</span><input name="title" required maxlength="200" value="{{ data.title }}"></label>
+ <label class="field"><span>Summary <span class="muted">(shown to trainees under the title)</span></span><textarea name="summary" rows="2">{{ data.summary }}</textarea></label>
+ <label class="field"><span>Source document <span class="muted">(e.g. SMP-MAINT-TRAIN-002 v1, section 3)</span></span><input name="source_doc" maxlength="200" value="{{ data.source_doc }}"></label>
+ <div class="form-grid">
+  <label class="field"><span>Pass mark (%)</span><input name="pass_mark" type="number" min="1" max="100" required value="{{ data.pass_mark }}"></label>
+  <label class="field"><span>Questions per attempt</span><input name="questions_per_attempt" type="number" min="1" required value="{{ data.questions_per_attempt }}"></label>
+  <label class="field"><span>Maximum attempts</span><input name="max_attempts" type="number" min="1" max="20" required value="{{ data.max_attempts }}"></label>
+ </div>
+ <label class="field"><span>Acknowledgment text <span class="muted">(the trainee agrees to this after passing)</span></span><textarea name="acknowledgment" rows="4" required>{{ data.acknowledgment }}</textarea></label>
+</div>
+
+<div class="card">
+ <h2 style="margin-top:0">Question bank</h2>
+ <p class="muted">Each attempt picks questions at random from this bank. Tick the correct answer for each question.
+ English is required; Arabic, Hindi and Malayalam are optional, but a translation must cover the question and every option.</p>
+ <div id="questions"></div>
+ <button type="button" class="btn secondary" id="add-q">+ Add question</button>
+</div>
+
+{% if module and current and current.videos %}
+<div class="card"><label><input type="checkbox" name="copy_videos" value="1" {{ "checked" if copy_videos }}>
+ Copy the current videos ({{ current.videos|map(attribute="lang")|join(", ") }}) to the new version</label>
+ <p class="muted small">Untick this if the video content changes too, then upload the new videos after saving.</p></div>
+{% endif %}
+
+<button>{{ "Publish version " ~ next_version if module else "Create lesson" }}</button>
+<a class="btn secondary" href="/admin/modules">Cancel</a>
+</form>
+
+<script type="application/json" id="lesson-data">{{ {"questions": questions, "languages": languages}|tojson }}</script>
+<script>
+(function () {
+  var init = JSON.parse(document.getElementById('lesson-data').textContent);
+  var LANGS = Object.keys(init.languages), OTHER = LANGS.filter(function (l) { return l !== 'en'; });
+  var root = document.getElementById('questions');
+  var open = {};  // which questions have their translations panel open, so re-drawing keeps it open
+  function blankText() { var t = {}; LANGS.forEach(function (l) { t[l] = ''; }); return t; }
+  function blankQ() { return {id: '', answer: null, text: blankText(), options: [blankText(), blankText(), blankText(), blankText()]}; }
+  var qs = (init.questions || []).map(function (q) {
+    var opts = (q.options || []).map(function (o) { return Object.assign(blankText(), o); });
+    return {id: q.id || '', answer: typeof q.answer === 'number' ? q.answer : null,
+            text: Object.assign(blankText(), q.text || {}), options: opts.length ? opts : blankQ().options};
+  });
+  if (!qs.length) qs.push(blankQ());
+
+  function el(tag, props, kids) {
+    var e = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (k) { if (k === 'class') e.className = props[k]; else e[k] = props[k]; });
+    (kids || []).forEach(function (c) { e.append(c); });
+    return e;
+  }
+  function input(obj, key, lang, label, multiline) {
+    var e = el(multiline ? 'textarea' : 'input', {value: obj[key] || '', dir: init.languages[lang].dir});
+    if (multiline) e.rows = 2; else e.type = 'text';
+    e.setAttribute('aria-label', label);
+    e.addEventListener('input', function () { obj[key] = e.value; });
+    return e;
+  }
+  function btn(text, title, fn, cls) {
+    var b = el('button', {type: 'button', class: 'btn secondary sm ' + (cls || ''), textContent: text, title: title});
+    b.setAttribute('aria-label', title); b.onclick = fn; return b;
+  }
+  function draw() {
+    root.textContent = '';
+    qs.forEach(function (q, qi) {
+      var n = qi + 1, card = el('div', {class: 'qcard'});
+      card.append(el('div', {class: 'qhead'}, [el('b', {textContent: 'Question ' + n}), el('span', {}, [
+        btn('▲', 'Move question ' + n + ' up', function () { if (qi) { qs.splice(qi - 1, 0, qs.splice(qi, 1)[0]); draw(); } }),
+        ' ', btn('▼', 'Move question ' + n + ' down', function () { if (qi < qs.length - 1) { qs.splice(qi + 1, 0, qs.splice(qi, 1)[0]); draw(); } }),
+        ' ', btn('Delete', 'Delete question ' + n, function () { if (confirm('Delete question ' + n + '?')) { qs.splice(qi, 1); if (!qs.length) qs.push(blankQ()); draw(); } }, 'danger')])]));
+      card.append(el('label', {class: 'field'}, [el('span', {textContent: 'Question (English)'}), input(q.text, 'en', 'en', 'Question ' + n + ' in English', true)]));
+      q.options.forEach(function (o, oi) {
+        var radio = el('input', {type: 'radio', name: 'answer_' + qi, checked: q.answer === oi});
+        radio.onchange = function () { q.answer = oi; };
+        card.append(el('div', {class: 'opt'}, [
+          el('label', {}, [radio, ' Correct']),
+          input(o, 'en', 'en', 'Question ' + n + ' option ' + (oi + 1) + ' in English'),
+          btn('✕', 'Remove option ' + (oi + 1), function () {
+            if (q.options.length <= 2) { alert('A question needs at least 2 options.'); return; }
+            q.options.splice(oi, 1);
+            if (q.answer === oi) q.answer = null; else if (q.answer > oi) q.answer -= 1;
+            draw();
+          }, 'danger')]));
+      });
+      card.append(btn('+ Option', 'Add an option to question ' + n, function () { q.options.push(blankText()); draw(); }));
+      var filled = OTHER.filter(function (l) { return q.text[l] || q.options.some(function (o) { return o[l]; }); });
+      var tr = el('details', {class: 'trans', open: !!open[qi] || false}, [
+        el('summary', {textContent: 'Translations' + (filled.length ? ' (' + filled.map(function (l) { return init.languages[l].name; }).join(', ') + ')' : ' (optional)')})]);
+      tr.addEventListener('toggle', function () { open[qi] = tr.open; });
+      OTHER.forEach(function (l) {
+        var name = init.languages[l].name, fs = el('fieldset', {}, [el('legend', {textContent: name + ' · ' + init.languages[l].native})]);
+        fs.append(el('label', {class: 'field'}, [el('span', {textContent: 'Question'}), input(q.text, l, l, 'Question ' + n + ' in ' + name, true)]));
+        q.options.forEach(function (o, oi) {
+          fs.append(el('div', {class: 'opt'}, [el('label', {textContent: 'Option ' + (oi + 1) + (q.answer === oi ? ' ✔' : '')}),
+            input(o, l, l, 'Question ' + n + ' option ' + (oi + 1) + ' in ' + name)]));
+        });
+        tr.append(fs);
+      });
+      card.append(tr);
+      root.append(card);
+    });
+  }
+  draw();
+  document.getElementById('add-q').onclick = function () {
+    qs.push(blankQ()); draw(); root.lastChild.querySelector('textarea').focus();
+  };
+  document.getElementById('lesson-form').addEventListener('submit', function (e) {
+    var missing = qs.findIndex(function (q) { return q.answer === null; });
+    if (missing >= 0) { e.preventDefault(); alert('Tick the correct answer for question ' + (missing + 1) + '.'); return; }
+    document.getElementById('questions_json').value = JSON.stringify(qs);
+  });
+})();
+</script>
+{% endblock %}

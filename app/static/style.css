@@ -35,3 +35,18 @@ fieldset.course-pick legend{padding:0 6px}
 .collapse-toggle{background:none;color:var(--brand);padding:0 6px;font-size:1.1rem;line-height:1;border-radius:4px}
 .collapse-toggle:hover,.collapse-toggle:focus-visible{background:#e7edf3}
 [data-collapse].collapsed .collapse-body{display:none}
+.btn.sm,button.sm{padding:4px 10px;font-size:.85rem}
+.head-actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.field{display:block;margin:10px 0}.field>span{display:block;font-weight:600;margin-bottom:4px}
+.field input,.field textarea,.field select{width:100%}
+textarea{font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px;max-width:100%}
+.errors{background:#fde7e7;border:1px solid #f3b9b9;border-radius:8px;padding:8px 12px 8px 28px;color:var(--bad)}
+.qcard{border:1px solid var(--line);border-radius:8px;padding:12px;margin:12px 0;background:#fbfcfd}
+.qcard .qhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.opt{display:flex;align-items:center;gap:8px;margin:6px 0}.opt input[type=text]{flex:1}
+.opt label{white-space:nowrap;font-size:.85rem}
+.trans{margin-top:10px}.trans summary{cursor:pointer;color:var(--brand)}
+.trans fieldset{border:1px solid var(--line);border-radius:6px;margin:8px 0;padding:6px 10px}
+.btn.danger,button.danger{background:#fde7e7;color:var(--bad)}
+.lesson-row{display:flex;gap:6px;align-items:center;margin:6px 0}.lesson-row select{flex:1}

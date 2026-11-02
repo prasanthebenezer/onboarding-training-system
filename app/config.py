@@ -29,7 +29,6 @@ class Settings:
         self.secret_key = os.getenv("SECRET_KEY", "dev-only-secret")
         self.database_url = os.getenv("DATABASE_URL", f"sqlite:///{ROOT / 'dev.db'}")
         self.media_dir = Path(os.getenv("MEDIA_DIR", str(ROOT / "media")))
-        self.content_dir = Path(os.getenv("CONTENT_DIR", str(ROOT / "content")))
         self.admins = _parse_admins(os.getenv("ADMIN_USERS", "admin:admin:Admin"))
         self.org_name = os.getenv("ORG_NAME", "Maintenance Department")
         self.assignment_valid_days = int(os.getenv("ASSIGNMENT_VALID_DAYS", "30"))

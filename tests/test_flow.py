@@ -1,12 +1,13 @@
 import re
 from urllib.parse import unquote
 
+from seed import seed
+
 ADMIN = ("boss", "pw")
 
 
 def _setup(client):
-    r = client.post("/admin/modules/sync", auth=ADMIN)
-    assert r.status_code == 200 and "Published / updated: pt-01-raw-materials v1" in r.text, r.text
+    seed()
     from app.db import SessionLocal
     from app.models import ModuleVersion
     with SessionLocal() as db:
@@ -95,23 +96,6 @@ def test_tamper_detected(client):
     assert "Chain broken at entry #2" in client.get("/admin/audit", auth=ADMIN).text
 
 
-def test_frozen_version(client, tmp_path, monkeypatch):
-    client.post("/admin/modules/sync", auth=ADMIN)
-    from app import content_loader
-    from app.config import settings
-    import shutil
-    src = settings.content_dir
-    dst = tmp_path / "content"
-    shutil.copytree(src, dst)
-    y = dst / "modules/pt-01-raw-materials/module.yaml"
-    y.write_text(y.read_text().replace("pass_mark: 80", "pass_mark: 70"))
-    monkeypatch.setattr(settings, "content_dir", dst)
-    from app.db import SessionLocal
-    with SessionLocal() as db:
-        rep = content_loader.sync(db, "t")
-    assert any("version not bumped" in e for e in rep.errors)
-
-
 def test_trainee_chooses_language(client):
     token, _ = _setup(client)  # module 1 has only an Arabic video uploaded
     client.post(f"/t/{token}", data={"employee_id": "E100"})
@@ -161,7 +145,7 @@ def _pass_lesson(client, token, item_id, answers):
 
 
 def test_course_order_lock_and_certificate(client):
-    client.post("/admin/modules/sync", auth=ADMIN)
+    seed()
     from app.db import SessionLocal
     from app.models import AssignmentItem, CourseCompletion, Module, ModuleVersion
     with SessionLocal() as db:

@@ -164,9 +164,9 @@ class AuditLog(Base):
 
 # ---------------------------------------------------------------------------
 # Courses group lessons. In code a lesson is a `Module` (one quiz + one video
-# per language); on screen it is called a "Lesson". Courses are defined in
-# content/courses/<slug>/course.yaml and are new tables only, so existing
-# databases need no migration (create_all adds them).
+# per language); on screen it is called a "Lesson". Courses and lessons are
+# created and revised in the admin pages (app/authoring.py). The course tables
+# are new tables only, so existing databases need no migration (create_all adds them).
 # ---------------------------------------------------------------------------
 class Course(Base):
     __tablename__ = "courses"

@@ -1,24 +1,23 @@
 {% extends "admin/_base.html" %}{% block title %}Courses & lessons{% endblock %}
 {% block content %}
 <h1>Courses & lessons</h1>{% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
-<div class="card">
-<p class="muted">Courses live in <code>content/courses/*/course.yaml</code> (title, order, list of lessons); lessons and their quizzes in
-<code>content/modules/*/module.yaml</code>. After editing in git (bump a lesson's <code>version</code> when its content changes), import here.</p>
-<form method="post" action="/admin/modules/sync"><button>Import content from repository</button></form>
-{% if report %}<div style="margin-top:12px">
-{% for x in report.created %}<div class="msg">Published / updated: {{ x }}</div>{% endfor %}
-{% for x in report.unchanged %}<div class="muted">Unchanged: {{ x }}</div>{% endfor %}
-{% for x in report.errors %}<div class="error">{{ x }}</div>{% endfor %}</div>{% endif %}
+<div class="card topline">
+<p class="muted" style="margin:0">Revising a lesson publishes a new version. Earlier versions, and the records of trainees who took them, stay unchanged.</p>
+<div><a class="btn" href="/admin/courses/new">+ New course</a> <a class="btn secondary" href="/admin/lessons/new">+ New lesson</a></div>
 </div>
 {% if catalog %}<div class="collapse-bar"><button type="button" class="btn secondary" data-collapse-all="expand">Expand all</button>
 <button type="button" class="btn secondary" data-collapse-all="collapse">Collapse all</button></div>
 {% endif %}
 {% for course, versions in catalog %}
 <section data-collapse="{{ 'c' ~ course.id if course else 'none' }}">
-<h2 class="collapse-head"><button type="button" class="collapse-toggle" aria-label="Show or hide lessons" aria-expanded="true">▾</button> {% if course %}Course: {{ course.title }} <span class="muted">· {{ versions|length }} lessons</span>{% else %}Lessons not in a course{% endif %}</h2>
+<h2 class="collapse-head"><button type="button" class="collapse-toggle" aria-label="Show or hide lessons" aria-expanded="true">▾</button> {% if course %}Course: {{ course.title }} <span class="muted">· {{ versions|length }} lessons</span>{% else %}Lessons not in a course{% endif %}
+{% if course %}<span class="head-actions"><a class="btn secondary sm" href="/admin/courses/{{ course.id }}/edit">Edit course</a>
+<a class="btn secondary sm" href="/admin/lessons/new?course_id={{ course.id }}">+ Lesson</a></span>{% endif %}</h2>
 <div class="collapse-body">
+{% if not versions %}<div class="card muted">No lessons in this course yet. Use <b>Edit course</b> to add existing lessons, or <b>+ Lesson</b> to create one.</div>{% endif %}
 {% for mv in versions %}
-<div class="card"><h3 style="margin-top:0">{% if course %}Lesson {{ loop.index }} · {% endif %}{{ mv.title }} <span class="muted">· {{ mv.module.slug }}</span></h3>
+<div class="card"><h3 style="margin-top:0">{% if course %}Lesson {{ loop.index }} · {% endif %}{{ mv.title }} <span class="muted">· {{ mv.module.slug }}</span>
+<a class="btn secondary sm" style="float:right" href="/admin/lessons/{{ mv.module_id }}/revise">Revise</a></h3>
 <p>Version <b>v{{ mv.version }}</b> · {{ mv.source_doc }} · {{ mv.questions|length }} questions in bank, {{ mv.questions_per_attempt }} per attempt, pass {{ mv.pass_mark }}%, max {{ mv.max_attempts }} attempts</p>
 {% set vids = {} %}{% for v in mv.videos %}{% set _ = vids.update({v.lang: v}) %}{% endfor %}
 <div class="table-wrap"><table><tr><th>Language</th><th>Video</th><th>Upload / replace (.mp4)</th></tr>
@@ -28,5 +27,5 @@
 </table></div></div>
 {% endfor %}
 </div></section>
-{% else %}<div class="card muted">No content imported yet.</div>{% endfor %}
+{% else %}<div class="card muted">No courses or lessons yet. Start with <b>+ New lesson</b>, then group lessons with <b>+ New course</b>.</div>{% endfor %}
 {% endblock %}

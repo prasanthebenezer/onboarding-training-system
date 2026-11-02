@@ -1,0 +1,50 @@
+{% extends "admin/_base.html" %}{% block title %}{{ "Edit course" if course else "New course" }}{% endblock %}
+{% block content %}
+<p><a href="/admin/modules">← Courses &amp; lessons</a></p>
+<h1>{{ "Edit course: " ~ course.title if course else "New course" }}</h1>
+{% if errors %}<ul class="errors">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+<form method="post" action="/admin/courses/save" id="course-form">
+{% if course %}<input type="hidden" name="course_id" value="{{ course.id }}">{% endif %}
+<div class="card">
+ <label class="field"><span>Course title</span><input name="title" required maxlength="200" value="{{ form.title or '' }}"></label>
+ <label class="field"><span>Summary <span class="muted">(optional)</span></span><textarea name="summary" rows="2">{{ form.summary or '' }}</textarea></label>
+ <label class="field" style="max-width:220px"><span>List order</span><input name="position" type="number" min="0" value="{{ form.position if form.position is not none else '' }}" placeholder="after the others">
+ <span class="muted small" style="font-weight:400">Courses are listed lowest number first.</span></label>
+</div>
+<div class="card">
+ <h2 style="margin-top:0">Lessons, in order</h2>
+ <p class="muted">Trainees who are assigned the whole course unlock these lessons one after another, top to bottom.</p>
+ {% if not lessons %}<p class="muted">There are no lessons yet. <a href="/admin/lessons/new">Create a lesson</a> first, or save the course now and add lessons from it later.</p>{% endif %}
+ <div id="lesson-rows"></div>
+ {% if lessons %}<button type="button" class="btn secondary" id="add-lesson">+ Add a lesson</button>{% endif %}
+</div>
+<button>Save course</button> <a class="btn secondary" href="/admin/modules">Cancel</a>
+</form>
+<script type="application/json" id="course-data">{{ {"lessons": lessons, "selected": lesson_ids}|tojson }}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById('course-data').textContent);
+  var rows = document.getElementById('lesson-rows');
+  function row(selected) {
+    var r = document.createElement('div'); r.className = 'lesson-row';
+    var n = document.createElement('span'); n.className = 'muted num';
+    var s = document.createElement('select'); s.name = 'lesson_ids'; s.required = true;
+    var blank = new Option('— choose a lesson —', ''); s.add(blank);
+    data.lessons.forEach(function (l) { s.add(new Option(l.title + ' (v' + l.version + ')', l.id, false, l.id === selected)); });
+    function btn(label, title, fn, cls) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary sm ' + (cls || '');
+      b.textContent = label; b.title = title; b.setAttribute('aria-label', title); b.onclick = fn; return b;
+    }
+    r.append(n, s,
+      btn('▲', 'Move up', function () { if (r.previousElementSibling) rows.insertBefore(r, r.previousElementSibling); number(); }),
+      btn('▼', 'Move down', function () { if (r.nextElementSibling) rows.insertBefore(r.nextElementSibling, r); number(); }),
+      btn('✕', 'Remove from course', function () { r.remove(); number(); }, 'danger'));
+    rows.appendChild(r);
+  }
+  function number() { [].forEach.call(rows.children, function (r, i) { r.querySelector('.num').textContent = (i + 1) + '.'; }); }
+  data.selected.forEach(row); number();
+  var add = document.getElementById('add-lesson');
+  if (add) add.onclick = function () { row(null); number(); rows.lastChild.querySelector('select').focus(); };
+})();
+</script>
+{% endblock %}

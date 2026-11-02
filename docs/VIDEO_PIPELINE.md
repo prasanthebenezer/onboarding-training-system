@@ -2,9 +2,9 @@
 
 Limit: **under 3 minutes per video**. Keep narration at or below about 330 English words. Arabic and Malayalam usually run longer when spoken.
 
-1. **Script (Claude):** Claude drafts `content/modules/<slug>/script.en.md` (scenes = ON SCREEN + NARRATION) and the quiz in `module.yaml` from the SOP/manual.
+1. **Script (Claude):** Claude drafts `content/modules/<slug>/script.en.md` (scenes = ON SCREEN + NARRATION) and the quiz questions from the SOP/manual. The quiz is entered in Admin → Courses & lessons.
    The SME reviews and approves. Anything not in the source document is not added.
-2. **Translate (Claude + human review):** `script.ar.md`, `script.hi.md`, `script.ml.md`, and the `ar/hi/ml` keys in `module.yaml`.
+2. **Translate (Claude + human review):** `script.ar.md`, `script.hi.md`, `script.ml.md`, and the Arabic/Hindi/Malayalam quiz text (the *Translations* section of each question in the lesson editor).
    A fluent colleague must check technical and safety wording before release.
 3. **Voiceover (Voice Studio, by admin):** voice tools read time cues aloud and can't place speech at a time, so record **one clip per scene**:
    ```bash
@@ -28,8 +28,8 @@ Limit: **under 3 minutes per video**. Keep narration at or below about 330 Engli
    ```
    Each clip starts exactly at its scene time from `script.<lang>.md`. If a clip is longer than its scene, nothing is written and the script names the clip:
    shorten that text or speed up the voice for that clip. Without `--video` it writes just the audio track (`--out voice_en.m4a`).
-6. **Upload:** `/admin/modules` → module → language row → Upload.
-7. **Changing content later:** edit the files, bump `version` in `module.yaml`, then import, upload the new videos and re-assign.
+6. **Upload:** `/admin/modules` → lesson → language row → Upload.
+7. **Changing content later:** Courses & lessons → **Revise** on the lesson publishes the next version. Untick *Copy the current videos* if the video changes, upload the new videos, then re-assign.
    Records of the old version stay valid for that version.
 
 ## Status
