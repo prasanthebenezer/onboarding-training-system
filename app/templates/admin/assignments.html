@@ -1,6 +1,6 @@
 {% extends "admin/_base.html" %}{% block title %}Links{% endblock %}
 {% block content %}
-<h1>Personal links {% if filtered %}<a class="btn secondary" href="/admin/assignments">show all</a>{% endif %}</h1>
+<h1>Personal links <a class="btn secondary" href="/admin/assignments.csv">Export CSV</a> {% if filtered %}<a class="btn secondary" href="/admin/assignments">show all</a>{% endif %}</h1>
 {% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
 <p class="muted">Tap “Send on WhatsApp”: WhatsApp opens with the message ready. Press Send in WhatsApp. The time you opened it is recorded. “Delete link” removes a link nobody has taken a quiz on; a link with quiz records can only be disabled, so the records are kept.</p>
 <div class="card table-wrap"><table>
@@ -14,7 +14,7 @@
 <br><button class="btn secondary" style="margin-top:6px" onclick="navigator.clipboard.writeText('{{ base_url }}/t/{{ a.token }}');this.textContent='Copied'">Copy link</button>{% endif %}
 {% if not (expired and has_records) %}
 <form method="post" action="/admin/assignments/{{ a.id }}/delete" style="margin-top:6px"
- onsubmit="return confirm({{ ('Disable this link for ' ~ a.trainee.name ~ '? It stops working at once. Its quiz and acknowledgment records are kept.' if has_records else 'Delete this link for ' ~ a.trainee.name ~ '? It stops working at once.')|tojson }})">
+ onsubmit="return confirm({{ ('Disable this link for ' ~ a.trainee.name ~ '? It stops working at once. Its quiz and acknowledgment records are kept.' if has_records else 'Delete this link for ' ~ a.trainee.name ~ '? It stops working at once.')|tojson|forceescape }})">
 <button class="btn danger sm">{{ "Disable link" if has_records else "Delete link" }}</button></form>{% endif %}</td>
 </tr>{% else %}<tr><td colspan="6" class="muted">No links.</td></tr>{% endfor %}
 </table></div>

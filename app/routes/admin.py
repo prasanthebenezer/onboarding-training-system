@@ -303,6 +303,32 @@ def assignments(request: Request, ids: str = "", msg: str | None = None, user: A
         "user": user, "rows": [(a, _wa(a), _expired(a), any(i.attempts for i in a.items)) for a in rows], "filtered": bool(ids), "msg": msg, "base_url": settings.base_url})
 
 
+@router.get("/assignments.csv")
+def assignments_csv(user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
+    """Every assigned lesson, one row per lesson per link, with its current progress."""
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    idx = courses.lesson_index(db)
+    w.writerow(["link_id", "employee_id", "name", "role", "phone", "course", "lesson_no", "lesson", "lesson_version",
+                "status", "attempts_used", "max_attempts", "best_score_pct", "completed_at_utc", "certificate_no",
+                "assigned_at_utc", "assigned_by", "due_date", "expires_at_utc", "link_state", "whatsapp_opened_at_utc",
+                "link"])
+    fmt = lambda d: d.isoformat() if d else ""
+    for a in db.scalars(select(Assignment).order_by(Assignment.created_at, Assignment.id)):
+        t, state = a.trainee, "disabled/expired" if _expired(a) else "active"
+        for i in a.items:
+            mv, c = i.module_version, idx.get(i.module_version.module_id)
+            used = [x for x in i.attempts if x.submitted_at]
+            w.writerow([a.id, t.employee_id, t.name, t.role, t.phone, c[0].title if c else "", c[1] if c else "",
+                        mv.title, mv.version, i.status, len(used), mv.max_attempts,
+                        max((x.score_pct for x in used), default=""), fmt(i.completed_at),
+                        i.acknowledgment.certificate_no if i.acknowledgment else "",
+                        fmt(a.created_at), a.created_by, a.due_date.strftime("%Y-%m-%d") if a.due_date else "",
+                        fmt(a.expires_at), state, fmt(a.sent_at), f"{settings.base_url}/t/{a.token}"])
+    return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv",
+                             headers={"Content-Disposition": 'attachment; filename="assigned_training.csv"'})
+
+
 @router.post("/assignments/{aid}/sent")
 def mark_sent(aid: int, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
     a = db.get(Assignment, aid) or _404()
@@ -344,13 +370,13 @@ def _expired(a: Assignment) -> bool:
 
 # ---------- records ----------
 @router.get("/records")
-def records(request: Request, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
+def records(request: Request, msg: str | None = None, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
     acks = db.scalars(select(Acknowledgment).order_by(Acknowledgment.at.desc())).all()
     completions = db.scalars(select(CourseCompletion).order_by(CourseCompletion.completed_at.desc())).all()
     idx = courses.lesson_index(db)
     course_of = {a.id: (idx.get(a.item.module_version.module_id) or (None,))[0] for a in acks}
     return templates.TemplateResponse(request, "admin/records.html", {
-        "user": user, "acks": acks, "completions": completions, "course_of": course_of})
+        "user": user, "acks": acks, "completions": completions, "course_of": course_of, "msg": msg})
 
 
 @router.get("/courses/{cc_id}/certificate.pdf")
@@ -369,6 +395,53 @@ def signoff(ack_id: int, user: AdminUser = Depends(require_admin), db: Session =
                   {"supervisor": user.display_name, "certificate_no": ack.certificate_no})
         db.commit()
     return _go("/admin/records")
+
+
+@router.post("/records/{ack_id}/delete")
+def delete_record(ack_id: int, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
+    """Deletes a lesson record: the signed acknowledgment (certificate) and the quiz attempts of that lesson.
+    The lesson goes back to "not started" on its link. A course certificate built on it is deleted too.
+    The full record is copied into the audit log first, so the deletion itself is evidenced."""
+    ack = db.get(Acknowledgment, ack_id) or _404()
+    item, mv = ack.item, ack.item.module_version
+    trainee = item.assignment.trainee
+    courses_gone = [cc for cc in db.scalars(select(CourseCompletion).where(CourseCompletion.trainee_id == trainee.id))
+                    if any(l.get("certificate_no") == ack.certificate_no for l in cc.lessons)]
+    audit.log(db, user.username, "record_deleted", "acknowledgment", ack.id, {
+        "certificate_no": ack.certificate_no, "trainee": trainee.employee_id, "item_id": item.id,
+        "module_version_id": mv.id, "lesson": f"{mv.title} v{mv.version}", "typed_name": ack.typed_name,
+        "acknowledged_at": ack.at, "statement": ack.statement, "supervisor": ack.supervisor_name,
+        "supervisor_at": ack.supervisor_at,
+        "attempts": [{"attempt_no": t.attempt_no, "lang": t.lang, "question_ids": t.question_ids, "answers": t.answers,
+                      "score_pct": t.score_pct, "passed": t.passed, "submitted_at": t.submitted_at}
+                     for t in item.attempts],
+        "course_certificates_deleted": [cc.certificate_no for cc in courses_gone]})
+    for cc in courses_gone:
+        _delete_course_completion(db, user.username, cc, reason=f"lesson record {ack.certificate_no} deleted")
+    db.delete(ack)
+    db.flush()
+    for t in list(item.attempts):
+        db.delete(t)
+    item.status, item.completed_at = "pending", None
+    db.commit()
+    return _go("/admin/records?msg=" + quote(f"Deleted {ack.certificate_no} ({trainee.name}, {mv.title})."))
+
+
+def _delete_course_completion(db: Session, actor: str, cc: CourseCompletion, reason: str):
+    audit.log(db, actor, "course_certificate_deleted", "course_completion", cc.id, {
+        "certificate_no": cc.certificate_no, "trainee": cc.trainee.employee_id, "course": cc.course_title,
+        "completed_at": cc.completed_at, "lessons": cc.lessons, "reason": reason})
+    db.delete(cc)
+
+
+@router.post("/courses/{cc_id}/delete")
+def delete_course_certificate(cc_id: int, user: AdminUser = Depends(require_admin), db: Session = Depends(get_db)):
+    """Deletes a course certificate only; the lesson records it was built on stay."""
+    cc = db.get(CourseCompletion, cc_id) or _404()
+    no = cc.certificate_no
+    _delete_course_completion(db, user.username, cc, reason="deleted by admin")
+    db.commit()
+    return _go("/admin/records?msg=" + quote(f"Deleted course certificate {no}."))
 
 
 @router.get("/records/{ack_id}/certificate.pdf")

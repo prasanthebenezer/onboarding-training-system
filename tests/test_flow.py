@@ -238,6 +238,21 @@ def test_course_order_lock_and_certificate(client):
     assert cc_no in rec and client.get(f"/admin/courses/{cc_id}/certificate.pdf", auth=ADMIN).content.startswith(b"%PDF")
     csv_text = client.get("/admin/records.csv", auth=ADMIN).text
     assert "course,lesson_no,lesson" in csv_text.splitlines()[0] and "Plant Technology,4," in csv_text
+    # deleting lesson 2's record also deletes the course certificate built on it; the other lessons stay
+    with SessionLocal() as db:
+        from app.models import Acknowledgment
+        ack2 = db.query(Acknowledgment).filter_by(item_id=items["pt-02-plant-configurations"]).one().id
+    r = client.post(f"/admin/records/{ack2}/delete", auth=ADMIN)
+    assert cc_no not in r.text and "No course completed yet." in r.text and r.text.count("TRN-") >= 3
+    with SessionLocal() as db:
+        assert db.query(CourseCompletion).count() == 0 and db.query(Acknowledgment).count() == 3
+    r = _pass_lesson(client, token, items["pt-02-plant-configurations"], answers)
+    assert "Course completed: Plant Technology" in r.text
+    with SessionLocal() as db:
+        cc_id = db.query(CourseCompletion).one().id
+    r = client.post(f"/admin/courses/{cc_id}/delete", auth=ADMIN)
+    assert "Deleted course certificate" in r.text and "No course completed yet." in r.text
+    assert "Chain intact" in client.get("/admin/audit", auth=ADMIN).text
 
     # a second trainee gets only lesson 4 as a refresher: not locked by lessons that weren't assigned
     client.post("/admin/trainees", auth=ADMIN, data={"employee_id": "E10", "name": "Refresher Tech",
@@ -303,3 +318,32 @@ def test_link_with_records_is_disabled_not_deleted(client):
     assert "Link expired" in client.get(f"/t/{token}").text
     assert client.get(f"/t/{token}/m/1").status_code == 410
     assert "Test Tech" in client.get("/admin/records", auth=ADMIN).text  # records kept
+
+
+def test_delete_lesson_record_and_export(client):
+    token, answers = _setup(client)
+    client.post(f"/t/{token}", data={"employee_id": "E100"})
+    _pass_lesson(client, token, 1, answers)
+    csv_text = client.get("/admin/assignments.csv", auth=ADMIN).text
+    head, row = csv_text.splitlines()[:2]
+    assert head.startswith("link_id,employee_id") and ",E100,Test Tech," in row and ",passed,1,3,100," in row
+    assert "TRN-" in row and ",active," in row and f"/t/{token}" in row
+    page = client.get("/admin/records", auth=ADMIN).text
+    assert "/admin/records/1/delete" in page
+    # the confirmation must survive inside the double-quoted onsubmit attribute
+    assert 'onsubmit="return confirm(&#34;Delete record TRN-' in page
+    links = client.get("/admin/assignments", auth=ADMIN).text
+    assert 'onsubmit="return confirm(&#34;Disable this link for Test Tech?' in links
+    r = client.post("/admin/records/1/delete", auth=ADMIN)
+    assert "Deleted TRN-" in r.text and "No completed training yet." in r.text
+    assert "Chain intact" in client.get("/admin/audit", auth=ADMIN).text
+    assert ",pending,0,3,," in client.get("/admin/assignments.csv", auth=ADMIN).text
+    from app.db import SessionLocal
+    from app.models import AuditLog, QuizAttempt
+    with SessionLocal() as db:
+        assert db.query(QuizAttempt).count() == 0
+        log = db.query(AuditLog).filter_by(action="record_deleted").one()
+        assert log.payload["typed_name"] == "Test Tech" and len(log.payload["attempts"]) == 1
+    # the lesson is open again on the link and, with no records left, the link can now be deleted
+    assert "Take the quiz" in client.get(f"/t/{token}/m/1").text
+    assert "Delete link" in client.get("/admin/assignments", auth=ADMIN).text

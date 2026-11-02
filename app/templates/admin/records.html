@@ -1,18 +1,22 @@
 {% extends "admin/_base.html" %}{% block title %}Records{% endblock %}
 {% block content %}
 <h1>Training records <a class="btn secondary" href="/admin/records.csv">Export CSV</a></h1>
+{% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
 <h2>Course certificates</h2>
 <div class="card table-wrap"><table>
-<tr><th>Certificate</th><th>Trainee</th><th>Course</th><th>Lessons</th><th>Completed</th></tr>
+<tr><th>Certificate</th><th>Trainee</th><th>Course</th><th>Lessons</th><th>Completed</th><th></th></tr>
 {% for c in completions %}<tr>
 <td><a href="/admin/courses/{{ c.id }}/certificate.pdf" target="_blank">{{ c.certificate_no }}</a></td>
 <td>{{ c.trainee.name }}<br><span class="muted">{{ c.trainee.employee_id }}</span></td>
 <td>{{ c.course_title }}</td><td>{{ c.lessons|length }}</td><td>{{ c.completed_at|dt }}</td>
-</tr>{% else %}<tr><td colspan="5" class="muted">No course completed yet.</td></tr>{% endfor %}
+<td><form method="post" action="/admin/courses/{{ c.id }}/delete"
+ onsubmit="return confirm({{ ('Delete course certificate ' ~ c.certificate_no ~ ' for ' ~ c.trainee.name ~ '?\n\nThe lesson records stay. A copy is kept in the audit log. This cannot be undone.')|tojson|forceescape }})">
+<button class="btn danger sm">Delete</button></form></td>
+</tr>{% else %}<tr><td colspan="6" class="muted">No course completed yet.</td></tr>{% endfor %}
 </table></div>
 <h2>Lesson records</h2>
 <div class="card table-wrap"><table>
-<tr><th>Certificate</th><th>Trainee</th><th>Lesson</th><th>Lang</th><th>Score</th><th>Acknowledged</th><th>Supervisor</th></tr>
+<tr><th>Certificate</th><th>Trainee</th><th>Lesson</th><th>Lang</th><th>Score</th><th>Acknowledged</th><th>Supervisor</th><th></th></tr>
 {% for a in acks %}<tr>
 <td><a href="/admin/records/{{ a.id }}/certificate.pdf" target="_blank">{{ a.certificate_no }}</a></td>
 <td>{{ a.item.assignment.trainee.name }}<br><span class="muted">{{ a.employee_id }}</span></td>
@@ -21,6 +25,9 @@
 <td>{{ a.at|dt }}<br><span class="muted">signed “{{ a.typed_name }}”</span></td>
 <td>{% if a.supervisor_name %}{{ a.supervisor_name }}<br><span class="muted">{{ a.supervisor_at|dt }}</span>
 {% else %}<form method="post" action="/admin/records/{{ a.id }}/signoff"><button>Sign off as {{ user.display_name }}</button></form>{% endif %}</td>
-</tr>{% else %}<tr><td colspan="7" class="muted">No completed training yet.</td></tr>{% endfor %}
+<td><form method="post" action="/admin/records/{{ a.id }}/delete"
+ onsubmit="return confirm({{ ('Delete record ' ~ a.certificate_no ~ ' for ' ~ a.item.assignment.trainee.name ~ ' (' ~ a.item.module_version.title ~ ')?\n\nThe certificate, signed acknowledgment and quiz attempts for this lesson are deleted, and any course certificate built on it. The lesson goes back to Not started on the trainee\'s link. A copy is kept in the audit log. This cannot be undone.')|tojson|forceescape }})">
+<button class="btn danger sm">Delete</button></form></td>
+</tr>{% else %}<tr><td colspan="8" class="muted">No completed training yet.</td></tr>{% endfor %}
 </table></div>
 {% endblock %}
