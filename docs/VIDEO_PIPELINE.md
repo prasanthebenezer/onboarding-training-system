@@ -35,6 +35,9 @@ Limit: **under 3 minutes per video**. Keep narration at or below about 330 Engli
 ## Status
 | Module | Language | Motion film | Length | Voiceover | Uploaded |
 |---|---|---|---|---|---|
-| pt-01 Raw Material Composition | EN | https://claude.ai/artifact/6cXuwHA1cBXKuzAjCkueRX | 2:30 (scene starts match `script.en.md`) | pending | no |
+| pt-01 Raw Material Composition | EN | https://claude.ai/artifact/6cXuwHA1cBXKuzAjCkueRX | 2:30 | done | yes |
+| pt-02 Pre- vs Post-Grinding | EN | https://claude.ai/artifact/HMBcBvEPBFEjeaGmB4hmFo | 2:30 | `voiceover/en/narration.en.srt` ready | no |
+| pt-03 Six Main Processes | EN | https://claude.ai/artifact/7brCSuxUWWZn7SRBMjTVXk | 2:50 | `voiceover/en/narration.en.srt` ready | no |
+| pt-04 Secondary Services & Safety | EN | https://claude.ai/artifact/1evHmknsNhy12V9RcBeJCK | 2:45 | `voiceover/en/narration.en.srt` ready | no |
 
 The Motion films are silent on purpose. The voiceover is the only audio track, added in step 5.

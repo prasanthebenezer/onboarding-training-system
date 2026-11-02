@@ -1,0 +1,92 @@
+1
+00:00:00,000 --> 00:00:02,705
+Feed production has six main processes.
+
+2
+00:00:02,955 --> 00:00:09,450
+To maintain the equipment and troubleshoot problems, you need to know what each one does.
+
+3
+00:00:10,000 --> 00:00:15,201
+One: intake and cleaning, the first line of defense.
+
+4
+00:00:15,451 --> 00:00:23,902
+Trucks are unloaded, and foreign objects like stones, metal and string are removed.
+
+5
+00:00:24,152 --> 00:00:31,450
+Dust and fines are separated, and material is sent to the right storage.
+
+6
+00:00:32,000 --> 00:00:34,554
+Two: dosing and weighing.
+
+7
+00:00:34,804 --> 00:00:47,450
+Certified scales deliver exact quantities of macro and micro ingredients, within the tolerances of the formulation.
+
+8
+00:00:48,000 --> 00:00:50,844
+Three: size reduction, or grinding.
+
+9
+00:00:51,094 --> 00:01:01,365
+Hammer mills bring materials to the required particle size, which matters for mixing, pellet quality and digestibility.
+
+10
+00:01:01,615 --> 00:01:10,825
+For maintenance, remember: performance depends on hammer condition, sieve integrity and proper air balance.
+
+11
+00:01:11,075 --> 00:01:14,450
+Inspect hammer wear and sieves regularly.
+
+12
+00:01:15,000 --> 00:01:16,155
+Four: mixing.
+
+13
+00:01:16,405 --> 00:01:29,450
+Dry and liquid components are blended into a homogeneous formula, so that every portion of feed has the intended nutrition.
+
+14
+00:01:30,000 --> 00:01:33,068
+Five: compacting, in three stages.
+
+15
+00:01:33,318 --> 00:01:40,291
+Conditioning adds steam or liquids for the right moisture and temperature.
+
+16
+00:01:40,541 --> 00:01:45,561
+This improves pellet durability and reduces pathogens.
+
+17
+00:01:45,811 --> 00:01:56,394
+Pelleting forces the mash through a die; die and roller specifications set pellet diameter, length and quality.
+
+18
+00:01:56,644 --> 00:02:06,252
+Cooling brings pellets to within five degrees of ambient temperature and dries them for safe storage.
+
+19
+00:02:06,502 --> 00:02:14,450
+Compacting does two jobs: it sanitizes through heat, and it makes a durable product.
+
+20
+00:02:15,000 --> 00:02:17,761
+Six: finished products.
+
+21
+00:02:18,011 --> 00:02:27,450
+Feed is bagged at set weights, or loaded onto trucks in bulk for dispatch.
+
+22
+00:02:28,000 --> 00:02:45,962
+Intake, dosing, grinding, mixing, compacting, and finished products: six processes, one chain.
+
+23
+00:02:46,212 --> 00:02:49,450
+Now take the quiz.
+

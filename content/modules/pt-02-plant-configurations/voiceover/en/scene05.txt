@@ -1,0 +1,1 @@
+Post-grinding allows particle size to be optimized for each recipe. It is energy efficient because only the required quantity is ground. Grind specifications can be adjusted per batch, giving better control over the final product.

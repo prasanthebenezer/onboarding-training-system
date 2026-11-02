@@ -1,0 +1,72 @@
+1
+00:00:00,000 --> 00:00:05,369
+A feed mill can be built in two main ways: pre-grinding or post-grinding.
+
+2
+00:00:05,619 --> 00:00:09,987
+The difference is simply where grinding sits in the process.
+
+3
+00:00:10,237 --> 00:00:11,450
+Let's look at both.
+
+4
+00:00:12,000 --> 00:00:21,403
+In a pre-grinding plant, raw materials are ground before dosing and weighing.
+
+5
+00:00:21,653 --> 00:00:37,450
+The sequence is: intake and cleaning, size reduction, dosing and weighing, mixing, pelleting and cooling, and finished products.
+
+6
+00:00:38,000 --> 00:00:49,529
+Pre-grinding gives uniform particle size across all batches, and consistent grinding specifications whatever the recipe.
+
+7
+00:00:49,779 --> 00:01:04,450
+The grinder runs on dedicated material streams, which makes operation simpler, and it reduces the risk of contamination between different raw materials.
+
+8
+00:01:05,000 --> 00:01:09,355
+In a post-grinding plant, the order changes.
+
+9
+00:01:09,605 --> 00:01:16,053
+Raw materials are dosed and weighed first, then ground together.
+
+10
+00:01:16,303 --> 00:01:29,450
+The sequence is: intake and cleaning, dosing and weighing, size reduction, mixing, pelleting and cooling, and finished products.
+
+11
+00:01:30,000 --> 00:01:37,008
+Post-grinding allows particle size to be optimized for each recipe.
+
+12
+00:01:37,258 --> 00:01:44,375
+It is energy efficient because only the required quantity is ground.
+
+13
+00:01:44,625 --> 00:01:54,450
+Grind specifications can be adjusted per batch, giving better control over the final product.
+
+14
+00:01:55,000 --> 00:02:06,057
+Notice that both plants start with intake and cleaning, and both finish with mixing, pelleting and cooling, and finished products.
+
+15
+00:02:06,307 --> 00:02:11,450
+Only the position of grinding changes, before or after dosing.
+
+16
+00:02:12,000 --> 00:02:18,264
+Remember: pre-grinding means grind, then dose.
+
+17
+00:02:18,514 --> 00:02:23,503
+Post-grinding means dose, then grind.
+
+18
+00:02:23,753 --> 00:02:29,450
+Now take the quiz to complete this module.
+

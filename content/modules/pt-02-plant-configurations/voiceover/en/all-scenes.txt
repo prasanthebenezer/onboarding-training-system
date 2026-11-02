@@ -1,0 +1,13 @@
+A feed mill can be built in two main ways: pre-grinding or post-grinding. The difference is simply where grinding sits in the process. Let's look at both.
+
+In a pre-grinding plant, raw materials are ground before dosing and weighing. The sequence is: intake and cleaning, size reduction, dosing and weighing, mixing, pelleting and cooling, and finished products.
+
+Pre-grinding gives uniform particle size across all batches, and consistent grinding specifications whatever the recipe. The grinder runs on dedicated material streams, which makes operation simpler, and it reduces the risk of contamination between different raw materials.
+
+In a post-grinding plant, the order changes. Raw materials are dosed and weighed first, then ground together. The sequence is: intake and cleaning, dosing and weighing, size reduction, mixing, pelleting and cooling, and finished products.
+
+Post-grinding allows particle size to be optimized for each recipe. It is energy efficient because only the required quantity is ground. Grind specifications can be adjusted per batch, giving better control over the final product.
+
+Notice that both plants start with intake and cleaning, and both finish with mixing, pelleting and cooling, and finished products. Only the position of grinding changes, before or after dosing.
+
+Remember: pre-grinding means grind, then dose. Post-grinding means dose, then grind. Now take the quiz to complete this module.

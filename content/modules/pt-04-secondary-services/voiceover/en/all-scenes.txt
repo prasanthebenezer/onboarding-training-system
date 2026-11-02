@@ -1,0 +1,19 @@
+Production depends on five secondary services. As maintenance personnel, you will work on all of them, and each has its own safety rules.
+
+One: aspiration. It controls dust across the plant, protecting worker health, preventing dust explosions and maintaining product quality.
+
+Safety first: always follow lock-out tag-out. Never bypass explosion vents or safety devices. Dust building up in ductwork is a fire and explosion hazard.
+
+Two: compressed air. It supplies clean, dry air for pneumatic controls, actuators, air-operated equipment and cleaning.
+
+Three: electrical installations and the plant control system. They distribute power, and the control system automates and monitors production.
+
+Electrical work is for qualified personnel only. Follow lock-out tag-out and verify zero energy state before you start. Arc flash hazards exist at electrical panels.
+
+Four: liquid installations. They store, heat and add liquid ingredients like molasses, fats and oils.
+
+Five: steam supply. It provides steam for conditioning, pelleting, extrusion and heating liquids.
+
+Steam systems run at high temperature and pressure. Burns and scalds are serious hazards. Never work on a pressurized steam system.
+
+Five services: aspiration, compressed air, electrical and control, liquids, and steam. Know them, and work on them safely. Now take the quiz.
